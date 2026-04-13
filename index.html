@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleetly — Fleet Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dark:#0F1923;
+  --teal:#00C9A7;
+  --teal2:#00a88c;
+  --light:#F4F5F7;
+  --white:#ffffff;
+  --grey:#e0e3ea;
+  --text:#1a1a1a;
+  --muted:#6b7280;
+  --danger:#e24b4a;
+  --success:#27500A;
+  --card:#ffffff;
+  --border:#e0e3ea;
+}
+body{font-family:Arial,sans-serif;background:var(--light);color:var(--text);font-size:14px}
+
+/* AUTH */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--dark)}
+.auth-box{background:var(--white);border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo .logo-text{font-size:36px;font-weight:700;color:var(--dark);letter-spacing:-1px}
+.auth-logo .logo-text span{font-weight:300;color:var(--teal)}
+.auth-logo .logo-tag{font-size:11px;color:var(--teal);letter-spacing:3px;margin-top:4px}
+.auth-title{font-size:18px;font-weight:700;color:var(--dark);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.form-group input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:Arial,sans-serif;color:var(--text)}
+.form-group input:focus{outline:none;border-color:var(--teal)}
+.btn-auth{width:100%;padding:12px;background:var(--teal);border:none;border-radius:8px;font-size:14px;font-weight:700;color:var(--white);cursor:pointer;font-family:Arial,sans-serif;margin-top:8px}
+.btn-auth:hover{background:var(--teal2)}
+.auth-error{background:#fff0f0;border:1px solid #fca5a5;border-radius:6px;padding:10px 12px;font-size:13px;color:var(--danger);margin-bottom:16px;display:none}
+
+/* APP LAYOUT */
+#app{display:none;min-height:100vh}
+.topbar{background:var(--dark);color:var(--white);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.topbar-logo span{font-weight:300;color:var(--teal)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-user{font-size:12px;color:rgba(255,255,255,0.6)}
+.btn-logout{padding:6px 14px;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--white);font-size:12px;cursor:pointer;font-family:Arial,sans-serif}
+.btn-logout:hover{border-color:var(--teal);color:var(--teal)}
+
+/* SIDEBAR */
+.layout{display:flex;min-height:calc(100vh - 58px)}
+.sidebar{width:220px;background:var(--white);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0}
+.nav-section{padding:0 16px;margin-bottom:8px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;color:var(--muted);border-radius:0;transition:all 0.15s;border-left:3px solid transparent}
+.nav-item:hover{background:var(--light);color:var(--text)}
+.nav-item.active{background:#e8fdf8;color:var(--teal);border-left-color:var(--teal);font-weight:700}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+
+/* MAIN CONTENT */
+.main{flex:1;padding:24px;overflow-x:hidden}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:700;color:var(--dark);margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:16px;padding-bottom:10px;border-bottom:1.5px solid var(--light)}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
+.metric{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:6px}
+.metric-value{font-size:26px;font-weight:700;color:var(--dark)}
+.metric-value.teal{color:var(--teal)}
+
+/* FORMS */
+.form-row{display:grid;gap:12px;margin-bottom:12px}
+.form-row.col2{grid-template-columns:1fr 1fr}
+.form-row.col3{grid-template-columns:1fr 1fr 1fr}
+.form-row.col4{grid-template-columns:1fr 1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.fg input,.fg select,.fg textarea{font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;background:var(--white);color:var(--text);width:100%}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--teal)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;transition:all 0.15s}
+.btn-primary{background:var(--teal);color:var(--white)}
+.btn-primary:hover{background:var(--teal2)}
+.btn-secondary{background:var(--light);color:var(--dark);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--grey)}
+.btn-danger{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;font-size:12px}
+.btn-danger:hover{color:var(--danger);border-color:#fca5a5}
+.btn-print{background:#185FA5;color:var(--white);padding:5px 10px;font-size:11px}
+.btn-print:hover{background:#0C447C}
+.btn-export{background:var(--success);color:var(--white)}
+.btn-export:hover{background:#3B6D11}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 10px;font-weight:700;font-size:11px;color:var(--muted);border-bottom:2px solid var(--light);background:#f8f9fc;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--light);color:var(--text);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8f9fc}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.badge-at{background:#E6F1FB;color:#0C447C}
+.badge-it{background:#EAF3DE;color:#27500A}
+.badge-pt{background:#FAEEDA;color:#633806}
+.badge-ht{background:#FAECE7;color:#712B13}
+.badge-car{background:#E1F5EE;color:#085041}
+.badge-bus{background:#EEEDFE;color:#3C3489}
+.badge-pending{background:#FEF3C7;color:#92400E}
+.badge-confirmed{background:#DBEAFE;color:#1E40AF}
+.badge-completed{background:#D1FAE5;color:#065F46}
+.badge-cancelled{background:#FEE2E2;color:#991B1B}
+.badge-active{background:#D1FAE5;color:#065F46}
+.badge-inactive{background:#F3F4F6;color:#6B7280}
+.badge-available{background:#D1FAE5;color:#065F46}
+.badge-onroute{background:#DBEAFE;color:#1E40AF}
+.badge-outofservice{background:#FEE2E2;color:#991B1B}
+
+/* PERIOD BUTTONS */
+.period-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pbtn{padding:6px 14px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;cursor:pointer;background:var(--white);color:var(--muted);font-family:Arial,sans-serif;font-weight:700}
+.pbtn:hover,.pbtn.on{background:var(--teal);color:var(--white);border-color:var(--teal)}
+
+/* TOOLBAR */
+.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.toolbar-left{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar-right{display:flex;gap:8px;align-items:center}
+.result-count{font-size:12px;color:var(--muted);font-weight:700}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:20px;padding-bottom:12px;border-bottom:1.5px solid var(--light)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--light)}
+
+/* DRIVER DASHBOARD */
+.service-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px}
+.service-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.service-card-title{font-size:15px;font-weight:700;color:var(--dark)}
+.service-card-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.service-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.service-detail-item{background:var(--light);border-radius:6px;padding:8px 10px}
+.service-detail-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:2px}
+.service-detail-value{font-size:13px;font-weight:600;color:var(--dark)}
+
+/* NOTIFICATION */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:var(--white);padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;display:none;border-left:4px solid var(--teal)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .form-row.col2,.form-row.col3,.form-row.col4{grid-template-columns:1fr}
+  .main{padding:16px}
+}
+
+/* PRINT */
+@media print{
+  body>*{display:none!important}
+  #print-doc{display:block!important;font-family:Arial,sans-serif;color:#000;padding:20px}
+}
+#print-doc{display:none}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-text">fleet<span>ly</span></div>
+      <div class="logo-tag">FLEET MANAGEMENT</div>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to your Fleetly account</div>
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" id="login-email" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••">
+    </div>
+    <button class="btn-auth" onclick="signIn()">Sign In</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">fleet<span>ly</span></div>
+    <div class="topbar-right">
+      <div class="topbar-user" id="topbar-user"></div>
+      <button class="btn-logout" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div id="admin-nav">
+        <div class="nav-section" style="margin-top:8px">Overview</div>
+        <div class="nav-item active" onclick="showPage('dashboard')">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-section" style="margin-top:16px">Services</div>
+        <div class="nav-item" onclick="showPage('services')">
+          <span class="nav-icon">🚗</span> Services
+        </div>
+        <div class="nav-item" onclick="showPage('reports')">
+          <span class="nav-icon">📈</span> Reports
+        </div>
+        <div class="nav-section" style="margin-top:16px">Management</div>
+        <div class="nav-item" onclick="showPage('drivers')">
+          <span class="nav-icon">👤</span> Drivers
+        </div>
+        <div class="nav-item" onclick="showPage('vehicles')">
+          <span class="nav-icon">🚙</span> Vehicles
+        </div>
+        <div class="nav-item" onclick="showPage('agencies')">
+          <span class="nav-icon">🏢</span> Agencies
+        </div>
+      </div>
+      <div id="driver-nav" style="display:none">
+        <div class="nav-section" style="margin-top:8px">My Area</div>
+        <div class="nav-item active" onclick="showPage('driver-home')">
+          <span class="nav-icon">📋</span> My Services
+        </div>
+        <div class="nav-item" onclick="showPage('driver-profile')">
+          <span class="nav-icon">👤</span> My Profile
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Welcome to Fleetly — here's your overview</div>
+        <div class="metrics" id="dash-metrics">
+          <div class="metric"><div class="metric-label">Total Services</div><div class="metric-value teal" id="m-services">—</div></div>
+          <div class="metric"><div class="metric-label">Active Drivers</div><div class="metric-value" id="m-drivers">—</div></div>
+          <div class="metric"><div class="metric-label">Vehicles</div><div class="metric-value" id="m-vehicles">—</div></div>
+          <div class="metric"><div class="metric-label">Agencies</div><div class="metric-value" id="m-agencies">—</div></div>
+          <div class="metric"><div class="metric-label">Revenue This Month</div><div class="metric-value teal" id="m-revenue">—</div></div>
+          <div class="metric"><div class="metric-label">Margin This Month</div><div class="metric-value" id="m-margin">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Services</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Client</th><th>Agency</th><th>Service</th><th>Driver</th><th>Status</th></tr></thead>
+              <tbody id="recent-services"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICES PAGE -->
+      <div class="page" id="page-services">
+        <div class="page-title">Services</div>
+        <div class="page-sub">Manage all transport services</div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <div class="period-btns">
+                <button class="pbtn" onclick="setServicePeriod(this,'week')">This week</button>
+                <button class="pbtn on" onclick="setServicePeriod(this,'month')">This month</button>
+                <button class="pbtn" onclick="setServicePeriod(this,'q')">3 months</button>
+                <button class="pbtn" onclick="setServicePeriod(this,'year')">This year</button>
+                <button class="pbtn" onclick="setServicePeriod(this,'all')">All time</button>
+              </div>
+            </div>
+            <div class="toolbar-right">
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-service')">+ Add Service</button>
+              <button class="btn btn-export btn-sm" onclick="exportServices()">Export Excel</button>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <select id="f-agency" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
+              <select id="f-svc-type" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+                <option value="">All services</option>
+                <option>Airport Transfer</option><option>Island Tour</option><option>Private Tour</option><option>Hotel Transfer</option>
+              </select>
+              <input type="date" id="f-from" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <span style="font-size:12px;color:var(--muted)">to</span>
+              <input type="date" id="f-to" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+            </div>
+            <div class="result-count" id="svc-count"></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Date</th><th>Time</th><th>Client</th><th>Agency</th><th>Service</th>
+                <th>Pax</th><th>Vehicle</th><th>Driver</th><th>Price €</th><th>Driver €</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody id="services-body"></tbody>
+            </table>
+            <div class="empty" id="services-empty" style="display:none">No services found for this period.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS PAGE -->
+      <div class="page" id="page-reports">
+        <div class="page-title">Reports</div>
+        <div class="page-sub">Financial overview by period and agency</div>
+        <div class="card">
+          <div class="period-btns">
+            <button class="pbtn" onclick="setReportPeriod(this,'week')">This week</button>
+            <button class="pbtn on" onclick="setReportPeriod(this,'month')">This month</button>
+            <button class="pbtn" onclick="setReportPeriod(this,'q')">3 months</button>
+            <button class="pbtn" onclick="setReportPeriod(this,'year')">This year</button>
+            <button class="pbtn" onclick="setReportPeriod(this,'all')">All time</button>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="date" id="r-from" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+            <span style="font-size:12px;color:var(--muted)">to</span>
+            <input type="date" id="r-to" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+            <select id="r-agency" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
+            <button class="btn btn-export btn-sm" onclick="exportReport()">Export Report</button>
+          </div>
+        </div>
+        <div class="metrics" id="r-metrics"></div>
+        <div class="card">
+          <div class="card-title">By Agency</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Agency</th><th>Airport Transfer</th><th>Island Tour</th><th>Private Tour</th><th>Hotel Transfer</th><th>Total</th><th>Pax</th><th>Revenue €</th><th>Driver Cost €</th><th>Margin €</th></tr></thead>
+              <tbody id="r-body"></tbody>
+            </table>
+            <div class="empty" id="r-empty" style="display:none">No data for this period.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRIVERS PAGE -->
+      <div class="page" id="page-drivers">
+        <div class="page-title">Drivers</div>
+        <div class="page-sub">Manage your driver team</div>
+        <div class="toolbar">
+          <div class="result-count" id="drivers-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-driver')">+ Add Driver</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Licence No.</th><th>Licence Expiry</th><th>Status</th><th></th></tr></thead>
+              <tbody id="drivers-body"></tbody>
+            </table>
+            <div class="empty" id="drivers-empty" style="display:none">No drivers yet. Add your first driver!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VEHICLES PAGE -->
+      <div class="page" id="page-vehicles">
+        <div class="page-title">Vehicles</div>
+        <div class="page-sub">Manage your fleet</div>
+        <div class="toolbar">
+          <div class="result-count" id="vehicles-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-vehicle')">+ Add Vehicle</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Plate</th><th>Make & Model</th><th>Year</th><th>Type</th><th>Seats</th><th>Status</th><th></th></tr></thead>
+              <tbody id="vehicles-body"></tbody>
+            </table>
+            <div class="empty" id="vehicles-empty" style="display:none">No vehicles yet. Add your first vehicle!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENCIES PAGE -->
+      <div class="page" id="page-agencies">
+        <div class="page-title">Agencies</div>
+        <div class="page-sub">Manage your agency partners</div>
+        <div class="toolbar">
+          <div class="result-count" id="agencies-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-agency')">+ Add Agency</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Agency Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="agencies-body"></tbody>
+            </table>
+            <div class="empty" id="agencies-empty" style="display:none">No agencies yet. Add your first agency!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRIVER HOME PAGE -->
+      <div class="page" id="page-driver-home">
+        <div class="page-title">My Services</div>
+        <div class="page-sub">Your assigned services</div>
+        <div class="period-btns">
+          <button class="pbtn on" onclick="setDriverPeriod(this,'today')">Today</button>
+          <button class="pbtn" onclick="setDriverPeriod(this,'week')">This week</button>
+          <button class="pbtn" onclick="setDriverPeriod(this,'month')">This month</button>
+        </div>
+        <div id="driver-services-list"><div class="empty">No services found.</div></div>
+      </div>
+
+      <!-- DRIVER PROFILE PAGE -->
+      <div class="page" id="page-driver-profile">
+        <div class="page-title">My Profile</div>
+        <div class="page-sub">Your driver details</div>
+        <div class="card" id="driver-profile-card"><div class="empty">Loading profile...</div></div>
+      </div>
+
+    </div><!-- end main -->
+  </div><!-- end layout -->
+</div><!-- end app -->
+
+<!-- MODALS -->
+
+<!-- Add Service Modal -->
+<div class="modal-overlay" id="modal-service">
+  <div class="modal">
+    <div class="modal-title" id="modal-service-title">Add Service</div>
+    <input type="hidden" id="svc-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="svc-date"></div>
+      <div class="fg"><label>Pick-up time</label><input type="time" id="svc-time"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Service type</label>
+        <select id="svc-type">
+          <option value="Airport Transfer">Airport Transfer</option>
+          <option value="Island Tour">Island Tour</option>
+          <option value="Private Tour">Private Tour</option>
+          <option value="Hotel Transfer">Hotel Transfer</option>
+        </select>
+      </div>
+      <div class="fg"><label>Agency</label><select id="svc-agency"><option value="">Select agency...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Client name</label><input type="text" id="svc-client" placeholder="Full name"></div>
+      <div class="fg"><label>Passengers</label><input type="number" id="svc-pax" min="1" value="1"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Pick-up location</label><input type="text" id="svc-pickup" placeholder="Hotel / address"></div>
+      <div class="fg"><label>Drop-off location</label><input type="text" id="svc-dropoff" placeholder="Airport / address"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Flight number</label><input type="text" id="svc-flight" placeholder="e.g. TP1234"></div>
+      <div class="fg"><label>Status</label>
+        <select id="svc-status">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Vehicle</label><select id="svc-vehicle"><option value="">Select vehicle...</option></select></div>
+      <div class="fg"><label>Driver</label><select id="svc-driver"><option value="">Select driver...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Service price (€)</label><input type="number" id="svc-price" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label>Driver cost (€)</label><input type="number" id="svc-drcost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="svc-notes" placeholder="Optional notes..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-service')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveService()">Save Service</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Driver Modal -->
+<div class="modal-overlay" id="modal-driver">
+  <div class="modal">
+    <div class="modal-title">Add Driver</div>
+    <input type="hidden" id="drv-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Full name</label><input type="text" id="drv-name" placeholder="Driver full name"></div>
+      <div class="fg"><label>Phone</label><input type="text" id="drv-phone" placeholder="+351 ..."></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Email</label><input type="email" id="drv-email" placeholder="driver@email.com"></div>
+      <div class="fg"><label>Status</label>
+        <select id="drv-status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Licence number</label><input type="text" id="drv-licence" placeholder="Licence number"></div>
+      <div class="fg"><label>Licence expiry</label><input type="date" id="drv-licence-exp"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Criminal record expiry</label><input type="date" id="drv-criminal-exp"></div>
+      <div class="fg"><label>Notes</label><input type="text" id="drv-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-driver')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDriver()">Save Driver</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal-overlay" id="modal-vehicle">
+  <div class="modal">
+    <div class="modal-title">Add Vehicle</div>
+    <input type="hidden" id="veh-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Plate number</label><input type="text" id="veh-plate" placeholder="00-AA-00" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Type</label>
+        <select id="veh-type">
+          <option value="Private Car">Private Car</option>
+          <option value="Minibus">Minibus</option>
+          <option value="Van">Van</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Make</label><input type="text" id="veh-make" placeholder="e.g. Mercedes"></div>
+      <div class="fg"><label>Model</label><input type="text" id="veh-model" placeholder="e.g. E-Class"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Year</label><input type="number" id="veh-year" placeholder="2024"></div>
+      <div class="fg"><label>Seats</label><input type="number" id="veh-seats" placeholder="4"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Status</label>
+        <select id="veh-status">
+          <option value="Available">Available</option>
+          <option value="On Route">On Route</option>
+          <option value="Out of Service">Out of Service</option>
+        </select>
+      </div>
+      <div class="fg"><label>Notes</label><input type="text" id="veh-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-vehicle')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Agency Modal -->
+<div class="modal-overlay" id="modal-agency">
+  <div class="modal">
+    <div class="modal-title">Add Agency</div>
+    <input type="hidden" id="ag-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Agency name</label><input type="text" id="ag-name" placeholder="Agency name"></div>
+      <div class="fg"><label>Contact name</label><input type="text" id="ag-contact" placeholder="Contact person"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Email</label><input type="email" id="ag-email" placeholder="agency@email.com"></div>
+      <div class="fg"><label>Phone</label><input type="text" id="ag-phone" placeholder="+351 ..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="ag-notes" placeholder="Optional notes..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agency')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAgency()">Save Agency</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<!-- Print doc -->
+<div id="print-doc"></div>
+
+<script>
+// =============================================
+// SUPABASE INIT
+// =============================================
+const SUPABASE_URL = 'https://pzepijkdkiglswderrrdv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZXBpamtka2lnbHN3ZGVycmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDIwNDMsImV4cCI6MjA5MTY3ODA0M30.XC-pW2W5euKWoQNWLlxmW_GOxXcasOVMlqDlRwIwAjM';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentProfile = null;
+let allAgencies = [];
+let allDrivers = [];
+let allVehicles = [];
+let serviceDateFrom = '';
+let serviceDateTo = '';
+let reportDateFrom = '';
+let reportDateTo = '';
+
+// =============================================
+// AUTH
+// =============================================
+async function signIn(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if(!email || !password){ showAuthError('Please enter email and password.'); return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ showAuthError(error.message); return; }
+  await initApp(data.user);
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  currentUser = null; currentProfile = null;
+}
+
+function showAuthError(msg){
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function initApp(user){
+  currentUser = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  currentProfile = profile;
+
+  document.getElementById('topbar-user').textContent = (profile?.full_name || user.email) + ' · ' + (profile?.role || 'user');
+
+  if(profile?.role === 'admin'){
+    document.getElementById('admin-nav').style.display = 'block';
+    document.getElementById('driver-nav').style.display = 'none';
+    await loadMasterData();
+    await loadDashboard();
+    setServicePeriodByName('month');
+    setReportPeriodByName('month');
+  } else {
+    document.getElementById('admin-nav').style.display = 'none';
+    document.getElementById('driver-nav').style.display = 'block';
+    showPage('driver-home');
+    setDriverPeriodByName('today');
+    loadDriverProfile();
+  }
+}
+
+// =============================================
+// MASTER DATA
+// =============================================
+async function loadMasterData(){
+  const [ag, dr, ve] = await Promise.all([
+    sb.from('agencies').select('*').order('name'),
+    sb.from('drivers').select('*').order('full_name'),
+    sb.from('vehicles').select('*').order('plate')
+  ]);
+  allAgencies = ag.data || [];
+  allDrivers = dr.data || [];
+  allVehicles = ve.data || [];
+  populateSelects();
+}
+
+function populateSelects(){
+  // Agency selects
+  ['svc-agency','f-agency','r-agency'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const val = el.value;
+    el.innerHTML = id==='svc-agency' ? '<option value="">Select agency...</option>' : '<option value="">All agencies</option>';
+    allAgencies.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.name; el.appendChild(o); });
+    if(val) el.value = val;
+  });
+  // Driver select
+  const drvEl = document.getElementById('svc-driver');
+  if(drvEl){
+    const val = drvEl.value;
+    drvEl.innerHTML = '<option value="">Select driver...</option>';
+    allDrivers.filter(d=>d.status==='Active').forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.full_name; drvEl.appendChild(o); });
+    if(val) drvEl.value = val;
+  }
+  // Vehicle select
+  const vehEl = document.getElementById('svc-vehicle');
+  if(vehEl){
+    const val = vehEl.value;
+    vehEl.innerHTML = '<option value="">Select vehicle...</option>';
+    allVehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : ''); vehEl.appendChild(o); });
+    if(val) vehEl.value = val;
+  }
+}
+
+// =============================================
+// DASHBOARD
+// =============================================
+async function loadDashboard(){
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const today = now.toISOString().split('T')[0];
+
+  const [svcAll, svcMonth, drvAll, vehAll, agAll] = await Promise.all([
+    sb.from('services').select('id', {count:'exact', head:true}),
+    sb.from('services').select('service_price, driver_cost').gte('service_date', monthStart).lte('service_date', today),
+    sb.from('drivers').select('id', {count:'exact', head:true}).eq('status','Active'),
+    sb.from('vehicles').select('id', {count:'exact', head:true}),
+    sb.from('agencies').select('id', {count:'exact', head:true})
+  ]);
+
+  document.getElementById('m-services').textContent = svcAll.count || 0;
+  document.getElementById('m-drivers').textContent = drvAll.count || 0;
+  document.getElementById('m-vehicles').textContent = vehAll.count || 0;
+  document.getElementById('m-agencies').textContent = agAll.count || 0;
+
+  const rev = (svcMonth.data||[]).reduce((s,e)=>s+parseFloat(e.service_price||0),0);
+  const dc = (svcMonth.data||[]).reduce((s,e)=>s+parseFloat(e.driver_cost||0),0);
+  document.getElementById('m-revenue').textContent = '€'+rev.toFixed(2);
+  document.getElementById('m-margin').textContent = '€'+(rev-dc).toFixed(2);
+
+  // Recent services
+  const { data: recent } = await sb.from('services')
+    .select('*, agencies(name), drivers(full_name), vehicles(plate)')
+    .order('service_date', {ascending:false}).limit(10);
+
+  const tbody = document.getElementById('recent-services');
+  if(!recent || !recent.length){ tbody.innerHTML = '<tr><td colspan="6" class="empty">No services yet.</td></tr>'; return; }
+  tbody.innerHTML = recent.map(s => `<tr>
+    <td>${s.service_date}</td>
+    <td>${s.client_name}</td>
+    <td>${s.agencies?.name||'—'}</td>
+    <td>${svcBadge(s.service_type)}</td>
+    <td>${s.drivers?.full_name||'—'}</td>
+    <td>${statusBadge(s.status)}</td>
+  </tr>`).join('');
+}
+
+// =============================================
+// SERVICES
+// =============================================
+function today(){ return new Date().toISOString().split('T')[0]; }
+function getPeriodDates(p){
+  const now = new Date(); let from, to = today();
+  if(p==='week'){ const d=new Date(now);d.setDate(d.getDate()-d.getDay()+1);from=d.toISOString().split('T')[0]; }
+  else if(p==='month'){ from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]; }
+  else if(p==='q'){ const d=new Date(now);d.setMonth(d.getMonth()-3);from=d.toISOString().split('T')[0]; }
+  else if(p==='year'){ from=new Date(now.getFullYear(),0,1).toISOString().split('T')[0]; }
+  else { from='2000-01-01'; }
+  return {from, to};
+}
+
+function setServicePeriod(btn, p){
+  document.querySelectorAll('#page-services .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  document.getElementById('f-from').value = d.from;
+  document.getElementById('f-to').value = d.to;
+  serviceDateFrom = d.from; serviceDateTo = d.to;
+  loadServices();
+}
+function setServicePeriodByName(p){
+  const d = getPeriodDates(p);
+  document.getElementById('f-from').value = d.from;
+  document.getElementById('f-to').value = d.to;
+  serviceDateFrom = d.from; serviceDateTo = d.to;
+  loadServices();
+}
+
+async function loadServices(){
+  const ag = document.getElementById('f-agency')?.value;
+  const st = document.getElementById('f-svc-type')?.value;
+  const from = document.getElementById('f-from')?.value || serviceDateFrom;
+  const to = document.getElementById('f-to')?.value || serviceDateTo;
+
+  let q = sb.from('services').select('*, agencies(name), drivers(full_name), vehicles(plate)').order('service_date',{ascending:false}).order('pickup_time',{ascending:false});
+  if(from) q = q.gte('service_date', from);
+  if(to) q = q.lte('service_date', to);
+  if(ag) q = q.eq('agency_id', ag);
+  if(st) q = q.eq('service_type', st);
+
+  const { data } = await q;
+  const rows = data || [];
+  document.getElementById('svc-count').textContent = rows.length + ' service' + (rows.length!==1?'s':'');
+
+  const tbody = document.getElementById('services-body');
+  const empty = document.getElementById('services-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(s => `<tr>
+    <td>${s.service_date}</td>
+    <td>${s.pickup_time||'—'}</td>
+    <td>${s.client_name}</td>
+    <td>${s.agencies?.name||'—'}</td>
+    <td>${svcBadge(s.service_type)}</td>
+    <td>${s.passengers||1}</td>
+    <td>${s.vehicles?.plate||'—'}</td>
+    <td>${s.drivers?.full_name||'—'}</td>
+    <td>€${parseFloat(s.service_price||0).toFixed(2)}</td>
+    <td>€${parseFloat(s.driver_cost||0).toFixed(2)}</td>
+    <td>${statusBadge(s.status)}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-print btn-sm" onclick="printDoc('${s.id}')">Print</button>
+      <button class="btn btn-secondary btn-sm" onclick="editService('${s.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteService('${s.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveService(){
+  const id = document.getElementById('svc-id').value;
+  const data = {
+    service_date: document.getElementById('svc-date').value,
+    pickup_time: document.getElementById('svc-time').value || null,
+    service_type: document.getElementById('svc-type').value,
+    agency_id: document.getElementById('svc-agency').value || null,
+    client_name: document.getElementById('svc-client').value.trim(),
+    passengers: parseInt(document.getElementById('svc-pax').value)||1,
+    pickup_location: document.getElementById('svc-pickup').value.trim(),
+    dropoff_location: document.getElementById('svc-dropoff').value.trim(),
+    flight_number: document.getElementById('svc-flight').value.trim(),
+    status: document.getElementById('svc-status').value,
+    vehicle_id: document.getElementById('svc-vehicle').value || null,
+    driver_id: document.getElementById('svc-driver').value || null,
+    service_price: parseFloat(document.getElementById('svc-price').value)||0,
+    driver_cost: parseFloat(document.getElementById('svc-drcost').value)||0,
+    notes: document.getElementById('svc-notes').value.trim()
+  };
+  if(!data.service_date || !data.client_name){ showToast('Please fill in date and client name.'); return; }
+  if(id){ await sb.from('services').update(data).eq('id', id); }
+  else { await sb.from('services').insert(data); }
+  closeModal('modal-service');
+  resetServiceForm();
+  await loadServices();
+  await loadDashboard();
+  showToast(id ? 'Service updated!' : 'Service added!');
+}
+
+async function editService(id){
+  const { data: s } = await sb.from('services').select('*').eq('id', id).single();
+  if(!s) return;
+  document.getElementById('svc-id').value = s.id;
+  document.getElementById('svc-date').value = s.service_date||'';
+  document.getElementById('svc-time').value = s.pickup_time||'';
+  document.getElementById('svc-type').value = s.service_type||'Airport Transfer';
+  document.getElementById('svc-agency').value = s.agency_id||'';
+  document.getElementById('svc-client').value = s.client_name||'';
+  document.getElementById('svc-pax').value = s.passengers||1;
+  document.getElementById('svc-pickup').value = s.pickup_location||'';
+  document.getElementById('svc-dropoff').value = s.dropoff_location||'';
+  document.getElementById('svc-flight').value = s.flight_number||'';
+  document.getElementById('svc-status').value = s.status||'Pending';
+  document.getElementById('svc-vehicle').value = s.vehicle_id||'';
+  document.getElementById('svc-driver').value = s.driver_id||'';
+  document.getElementById('svc-price').value = s.service_price||0;
+  document.getElementById('svc-drcost').value = s.driver_cost||0;
+  document.getElementById('svc-notes').value = s.notes||'';
+  document.getElementById('modal-service-title').textContent = 'Edit Service';
+  openModal('modal-service');
+}
+
+async function deleteService(id){
+  if(!confirm('Delete this service?')) return;
+  await sb.from('services').delete().eq('id', id);
+  await loadServices();
+  await loadDashboard();
+  showToast('Service deleted.');
+}
+
+function resetServiceForm(){
+  ['svc-id','svc-time','svc-flight','svc-pickup','svc-dropoff','svc-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('svc-date').value = today();
+  document.getElementById('svc-pax').value = '1';
+  document.getElementById('svc-price').value = '';
+  document.getElementById('svc-drcost').value = '';
+  document.getElementById('svc-client').value = '';
+  document.getElementById('svc-agency').value = '';
+  document.getElementById('svc-status').value = 'Pending';
+  document.getElementById('svc-vehicle').value = '';
+  document.getElementById('svc-driver').value = '';
+  document.getElementById('modal-service-title').textContent = 'Add Service';
+}
+
+// =============================================
+// REPORTS
+// =============================================
+function setReportPeriod(btn, p){
+  document.querySelectorAll('#page-reports .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  document.getElementById('r-from').value = d.from;
+  document.getElementById('r-to').value = d.to;
+  loadReport();
+}
+function setReportPeriodByName(p){
+  const d = getPeriodDates(p);
+  document.getElementById('r-from').value = d.from;
+  document.getElementById('r-to').value = d.to;
+  loadReport();
+}
+
+async function loadReport(){
+  const from = document.getElementById('r-from').value;
+  const to = document.getElementById('r-to').value;
+  const ag = document.getElementById('r-agency').value;
+
+  let q = sb.from('services').select('*, agencies(name)');
+  if(from) q = q.gte('service_date', from);
+  if(to) q = q.lte('service_date', to);
+  if(ag) q = q.eq('agency_id', ag);
+
+  const { data } = await q;
+  const rows = data || [];
+
+  const rev = rows.reduce((s,e)=>s+parseFloat(e.service_price||0),0);
+  const dc = rows.reduce((s,e)=>s+parseFloat(e.driver_cost||0),0);
+  const pax = rows.reduce((s,e)=>s+parseInt(e.passengers||1),0);
+
+  document.getElementById('r-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total Services</div><div class="metric-value teal">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Total Revenue</div><div class="metric-value teal">€${rev.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Driver Costs</div><div class="metric-value">€${dc.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Margin</div><div class="metric-value" style="color:${rev-dc>=0?'var(--success)':'var(--danger)'}">€${(rev-dc).toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Passengers</div><div class="metric-value">${pax}</div></div>
+  `;
+
+  const types = ['Airport Transfer','Island Tour','Private Tour','Hotel Transfer'];
+  const byAg = {};
+  rows.forEach(e => {
+    const name = e.agencies?.name || 'Unknown';
+    if(!byAg[name]){ byAg[name]={c:{},rev:0,dc:0,tot:0,pax:0}; types.forEach(t=>byAg[name].c[t]=0); }
+    byAg[name].c[e.service_type]=(byAg[name].c[e.service_type]||0)+1;
+    byAg[name].rev+=parseFloat(e.service_price||0);
+    byAg[name].dc+=parseFloat(e.driver_cost||0);
+    byAg[name].tot++;
+    byAg[name].pax+=parseInt(e.passengers||1);
+  });
+
+  const keys = Object.keys(byAg).sort((a,b)=>byAg[b].tot-byAg[a].tot);
+  const tbody = document.getElementById('r-body');
+  const empty = document.getElementById('r-empty');
+  if(!keys.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = keys.map(a => {
+    const m = (byAg[a].rev-byAg[a].dc).toFixed(2);
+    return `<tr>
+      <td style="font-weight:700">${a}</td>
+      ${types.map(t=>`<td>${byAg[a].c[t]||0}</td>`).join('')}
+      <td style="font-weight:700">${byAg[a].tot}</td>
+      <td>${byAg[a].pax}</td>
+      <td>€${byAg[a].rev.toFixed(2)}</td>
+      <td>€${byAg[a].dc.toFixed(2)}</td>
+      <td style="font-weight:700;color:${parseFloat(m)>=0?'var(--success)':'var(--danger)'}">€${m}</td>
+    </tr>`;
+  }).join('');
+}
+
+// =============================================
+// DRIVERS
+// =============================================
+async function loadDrivers(){
+  const { data } = await sb.from('drivers').select('*').order('full_name');
+  const rows = data || [];
+  document.getElementById('drivers-count').textContent = rows.length + ' driver' + (rows.length!==1?'s':'');
+  const tbody = document.getElementById('drivers-body');
+  const empty = document.getElementById('drivers-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(d => `<tr>
+    <td style="font-weight:700">${d.full_name}</td>
+    <td>${d.phone||'—'}</td>
+    <td>${d.email||'—'}</td>
+    <td>${d.licence_number||'—'}</td>
+    <td>${d.licence_expiry ? formatDate(d.licence_expiry) : '—'}</td>
+    <td>${statusBadgeDriver(d.status)}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editDriver('${d.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteDriver('${d.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveDriver(){
+  const id = document.getElementById('drv-id').value;
+  const data = {
+    full_name: document.getElementById('drv-name').value.trim(),
+    phone: document.getElementById('drv-phone').value.trim(),
+    email: document.getElementById('drv-email').value.trim(),
+    status: document.getElementById('drv-status').value,
+    licence_number: document.getElementById('drv-licence').value.trim(),
+    licence_expiry: document.getElementById('drv-licence-exp').value || null,
+    criminal_record_expiry: document.getElementById('drv-criminal-exp').value || null,
+    notes: document.getElementById('drv-notes').value.trim()
+  };
+  if(!data.full_name){ showToast('Please enter driver name.'); return; }
+  if(id){ await sb.from('drivers').update(data).eq('id', id); }
+  else { await sb.from('drivers').insert(data); }
+  closeModal('modal-driver');
+  resetDriverForm();
+  await loadDrivers();
+  await loadMasterData();
+  showToast(id ? 'Driver updated!' : 'Driver added!');
+}
+
+async function editDriver(id){
+  const { data: d } = await sb.from('drivers').select('*').eq('id', id).single();
+  if(!d) return;
+  document.getElementById('drv-id').value = d.id;
+  document.getElementById('drv-name').value = d.full_name||'';
+  document.getElementById('drv-phone').value = d.phone||'';
+  document.getElementById('drv-email').value = d.email||'';
+  document.getElementById('drv-status').value = d.status||'Active';
+  document.getElementById('drv-licence').value = d.licence_number||'';
+  document.getElementById('drv-licence-exp').value = d.licence_expiry||'';
+  document.getElementById('drv-criminal-exp').value = d.criminal_record_expiry||'';
+  document.getElementById('drv-notes').value = d.notes||'';
+  openModal('modal-driver');
+}
+
+async function deleteDriver(id){
+  if(!confirm('Delete this driver?')) return;
+  await sb.from('drivers').delete().eq('id', id);
+  await loadDrivers();
+  await loadMasterData();
+  showToast('Driver deleted.');
+}
+
+function resetDriverForm(){
+  ['drv-id','drv-name','drv-phone','drv-email','drv-licence','drv-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('drv-licence-exp').value = '';
+  document.getElementById('drv-criminal-exp').value = '';
+  document.getElementById('drv-status').value = 'Active';
+}
+
+// =============================================
+// VEHICLES
+// =============================================
+async function loadVehicles(){
+  const { data } = await sb.from('vehicles').select('*').order('plate');
+  const rows = data || [];
+  document.getElementById('vehicles-count').textContent = rows.length + ' vehicle' + (rows.length!==1?'s':'');
+  const tbody = document.getElementById('vehicles-body');
+  const empty = document.getElementById('vehicles-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(v => `<tr>
+    <td style="font-weight:700;letter-spacing:1px">${v.plate}</td>
+    <td>${v.make||''} ${v.model||''}</td>
+    <td>${v.year||'—'}</td>
+    <td>${vehBadge(v.type)}</td>
+    <td>${v.seats||'—'}</td>
+    <td>${statusBadgeVehicle(v.status)}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editVehicle('${v.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteVehicle('${v.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveVehicle(){
+  const id = document.getElementById('veh-id').value;
+  const data = {
+    plate: document.getElementById('veh-plate').value.trim().toUpperCase(),
+    make: document.getElementById('veh-make').value.trim(),
+    model: document.getElementById('veh-model').value.trim(),
+    year: parseInt(document.getElementById('veh-year').value)||null,
+    type: document.getElementById('veh-type').value,
+    seats: parseInt(document.getElementById('veh-seats').value)||null,
+    status: document.getElementById('veh-status').value,
+    notes: document.getElementById('veh-notes').value.trim()
+  };
+  if(!data.plate){ showToast('Please enter plate number.'); return; }
+  if(id){ await sb.from('vehicles').update(data).eq('id', id); }
+  else { await sb.from('vehicles').insert(data); }
+  closeModal('modal-vehicle');
+  resetVehicleForm();
+  await loadVehicles();
+  await loadMasterData();
+  showToast(id ? 'Vehicle updated!' : 'Vehicle added!');
+}
+
+async function editVehicle(id){
+  const { data: v } = await sb.from('vehicles').select('*').eq('id', id).single();
+  if(!v) return;
+  document.getElementById('veh-id').value = v.id;
+  document.getElementById('veh-plate').value = v.plate||'';
+  document.getElementById('veh-make').value = v.make||'';
+  document.getElementById('veh-model').value = v.model||'';
+  document.getElementById('veh-year').value = v.year||'';
+  document.getElementById('veh-type').value = v.type||'Private Car';
+  document.getElementById('veh-seats').value = v.seats||'';
+  document.getElementById('veh-status').value = v.status||'Available';
+  document.getElementById('veh-notes').value = v.notes||'';
+  openModal('modal-vehicle');
+}
+
+async function deleteVehicle(id){
+  if(!confirm('Delete this vehicle?')) return;
+  await sb.from('vehicles').delete().eq('id', id);
+  await loadVehicles();
+  await loadMasterData();
+  showToast('Vehicle deleted.');
+}
+
+function resetVehicleForm(){
+  ['veh-id','veh-plate','veh-make','veh-model','veh-year','veh-seats','veh-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('veh-type').value = 'Private Car';
+  document.getElementById('veh-status').value = 'Available';
+}
+
+// =============================================
+// AGENCIES
+// =============================================
+async function loadAgencies(){
+  const { data } = await sb.from('agencies').select('*').order('name');
+  const rows = data || [];
+  document.getElementById('agencies-count').textContent = rows.length + ' agenc' + (rows.length===1?'y':'ies');
+  const tbody = document.getElementById('agencies-body');
+  const empty = document.getElementById('agencies-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(a => `<tr>
+    <td style="font-weight:700">${a.name}</td>
+    <td>${a.contact_name||'—'}</td>
+    <td>${a.email||'—'}</td>
+    <td>${a.phone||'—'}</td>
+    <td>${a.notes||'—'}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editAgency('${a.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAgency('${a.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveAgency(){
+  const id = document.getElementById('ag-id').value;
+  const data = {
+    name: document.getElementById('ag-name').value.trim(),
+    contact_name: document.getElementById('ag-contact').value.trim(),
+    email: document.getElementById('ag-email').value.trim(),
+    phone: document.getElementById('ag-phone').value.trim(),
+    notes: document.getElementById('ag-notes').value.trim()
+  };
+  if(!data.name){ showToast('Please enter agency name.'); return; }
+  if(id){ await sb.from('agencies').update(data).eq('id', id); }
+  else { await sb.from('agencies').insert(data); }
+  closeModal('modal-agency');
+  resetAgencyForm();
+  await loadAgencies();
+  await loadMasterData();
+  showToast(id ? 'Agency updated!' : 'Agency added!');
+}
+
+async function editAgency(id){
+  const { data: a } = await sb.from('agencies').select('*').eq('id', id).single();
+  if(!a) return;
+  document.getElementById('ag-id').value = a.id;
+  document.getElementById('ag-name').value = a.name||'';
+  document.getElementById('ag-contact').value = a.contact_name||'';
+  document.getElementById('ag-email').value = a.email||'';
+  document.getElementById('ag-phone').value = a.phone||'';
+  document.getElementById('ag-notes').value = a.notes||'';
+  openModal('modal-agency');
+}
+
+async function deleteAgency(id){
+  if(!confirm('Delete this agency?')) return;
+  await sb.from('agencies').delete().eq('id', id);
+  await loadAgencies();
+  await loadMasterData();
+  showToast('Agency deleted.');
+}
+
+function resetAgencyForm(){
+  ['ag-id','ag-name','ag-contact','ag-email','ag-phone','ag-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+// =============================================
+// DRIVER AREA
+// =============================================
+function setDriverPeriod(btn, p){
+  document.querySelectorAll('#page-driver-home .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  setDriverPeriodByName(p);
+}
+
+async function setDriverPeriodByName(p){
+  const d = p==='today' ? {from:today(),to:today()} : getPeriodDates(p);
+  await loadDriverServices(d.from, d.to);
+}
+
+async function loadDriverServices(from, to){
+  const { data: myDriver } = await sb.from('drivers').select('*').eq('profile_id', currentUser.id).single();
+  if(!myDriver){ document.getElementById('driver-services-list').innerHTML = '<div class="empty">No driver profile linked. Please contact your admin.</div>'; return; }
+
+  let q = sb.from('services').select('*, agencies(name), vehicles(plate)').eq('driver_id', myDriver.id).order('service_date',{ascending:false});
+  if(from) q = q.gte('service_date', from);
+  if(to) q = q.lte('service_date', to);
+
+  const { data } = await q;
+  const rows = data || [];
+  const list = document.getElementById('driver-services-list');
+  if(!rows.length){ list.innerHTML = '<div class="empty">No services for this period.</div>'; return; }
+
+  list.innerHTML = rows.map(s => `
+    <div class="service-card">
+      <div class="service-card-header">
+        <div>
+          <div class="service-card-title">${s.client_name}</div>
+          <div class="service-card-meta">${s.service_date} ${s.pickup_time?'· '+s.pickup_time:''} · ${s.agencies?.name||'—'}</div>
+        </div>
+        <div>${statusBadge(s.status)}</div>
+      </div>
+      <div class="service-detail-grid">
+        <div class="service-detail-item"><div class="service-detail-label">Service</div><div class="service-detail-value">${s.service_type}</div></div>
+        <div class="service-detail-item"><div class="service-detail-label">Passengers</div><div class="service-detail-value">${s.passengers||1}</div></div>
+        <div class="service-detail-item"><div class="service-detail-label">Pick-up</div><div class="service-detail-value">${s.pickup_location||'—'}</div></div>
+        <div class="service-detail-item"><div class="service-detail-label">Drop-off</div><div class="service-detail-value">${s.dropoff_location||'—'}</div></div>
+        ${s.flight_number?`<div class="service-detail-item"><div class="service-detail-label">Flight</div><div class="service-detail-value">${s.flight_number}</div></div>`:''}
+        <div class="service-detail-item"><div class="service-detail-label">Vehicle</div><div class="service-detail-value">${s.vehicles?.plate||'—'}</div></div>
+      </div>
+      ${s.status==='Confirmed'?`<div style="margin-top:12px"><button class="btn btn-primary btn-sm" onclick="confirmComplete('${s.id}')">Mark as Completed</button></div>`:''}
+    </div>
+  `).join('');
+}
+
+async function confirmComplete(id){
+  await sb.from('services').update({status:'Completed'}).eq('id', id);
+  showToast('Service marked as completed!');
+  setDriverPeriodByName('today');
+}
+
+async function loadDriverProfile(){
+  const { data: d } = await sb.from('drivers').select('*').eq('profile_id', currentUser.id).single();
+  const card = document.getElementById('driver-profile-card');
+  if(!d){ card.innerHTML = '<div class="empty">No driver profile found. Contact your admin.</div>'; return; }
+  card.innerHTML = `
+    <div class="card-title">Driver Profile</div>
+    <div class="form-row col2">
+      <div class="fg"><label>Full Name</label><input type="text" value="${d.full_name||''}" readonly style="background:var(--light)"></div>
+      <div class="fg"><label>Phone</label><input type="text" value="${d.phone||''}" readonly style="background:var(--light)"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Email</label><input type="text" value="${d.email||''}" readonly style="background:var(--light)"></div>
+      <div class="fg"><label>Status</label><input type="text" value="${d.status||''}" readonly style="background:var(--light)"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Licence Number</label><input type="text" value="${d.licence_number||'—'}" readonly style="background:var(--light)"></div>
+      <div class="fg"><label>Licence Expiry</label><input type="text" value="${d.licence_expiry ? formatDate(d.licence_expiry) : '—'}" readonly style="background:var(--light)"></div>
+    </div>
+  `;
+}
+
+// =============================================
+// PRINT DOCUMENT
+// =============================================
+async function printDoc(id){
+  const { data: s } = await sb.from('services').select('*, agencies(name), drivers(full_name), vehicles(plate)').eq('id', id).single();
+  if(!s) return;
+  const docNum = 'AE-'+s.service_date.replace(/-/g,'')+'-'+s.id.slice(-4).toUpperCase();
+  const now = new Date().toLocaleDateString('pt-PT');
+  function row(l,v){ return `<div style="padding:8px 14px;border-bottom:0.5px solid #eee;border-right:0.5px solid #eee"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500;color:#1a1a1a">${v||'—'}</div></div>`; }
+  document.getElementById('print-doc').innerHTML = `<div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:30px;color:#1a1a1a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #0F1923">
+      <div><div style="font-size:26px;font-weight:700;color:#0F1923;letter-spacing:-1px">fleet<span style="font-weight:300;color:#00C9A7">ly</span></div><div style="font-size:11px;color:#00C9A7;letter-spacing:3px;margin-top:4px">FLEET MANAGEMENT</div></div>
+      <div style="text-align:right;font-size:11px;color:#555;line-height:1.7"><div style="font-weight:700;color:#0F1923;font-size:13px">Ricardo Santo, Unipessoal Lda</div><div>RNAVT Registo n.º 8229</div><div>Caminho da Penteada 73 · São Roque · 9020-105 Funchal</div><div>NIF: 515168882 · +351 962 573 300</div><div>manager@atlanticexpress.bet</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div><div style="font-size:18px;font-weight:700;color:#0F1923">TRANSPORT ORDER</div><div style="font-size:12px;color:#777;margin-top:2px">Ordem de Transporte</div></div>
+      <div style="text-align:right;font-size:12px;color:#555"><div><strong>Ref:</strong> ${docNum}</div><div><strong>Issued:</strong> ${now}</div></div>
+    </div>
+    <div style="border:1.5px solid #0F1923;border-radius:8px;overflow:hidden;margin-bottom:18px">
+      <div style="background:#0F1923;color:#fff;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Service Information</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Service Type',s.service_type)}${row('Date',formatDate(s.service_date))}${row('Pick-up Time',s.pickup_time||'—')}${row('Agency',s.agencies?.name||'—')}</div>
+    </div>
+    <div style="border:1px solid #dde;border-radius:8px;overflow:hidden;margin-bottom:18px">
+      <div style="background:#f0f3fa;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0F1923">Client & Journey</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Client Name',s.client_name)}${row('No. of Passengers',s.passengers||1)}${row('Pick-up Point',s.pickup_location||'—')}${row('Drop-off Point',s.dropoff_location||'—')}${s.flight_number?row('Flight Number',s.flight_number):''}${s.notes?row('Notes',s.notes):''}</div>
+    </div>
+    <div style="border:1px solid #dde;border-radius:8px;overflow:hidden;margin-bottom:24px">
+      <div style="background:#f0f3fa;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0F1923">Vehicle & Driver</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Vehicle Plate',s.vehicles?.plate||'—')}${row('Driver / Guide',s.drivers?.full_name||'—')}${row('Service Price','€'+parseFloat(s.service_price||0).toFixed(2))}${row('Status',s.status||'—')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:10px">
+      <div style="border-top:1px solid #bbb;padding-top:10px;font-size:11px;color:#555"><div style="font-weight:700;margin-bottom:4px">Driver / Guide signature</div><div style="height:40px"></div><div>Name: _______________________________</div></div>
+      <div style="border-top:1px solid #bbb;padding-top:10px;font-size:11px;color:#555"><div style="font-weight:700;margin-bottom:4px">Client signature</div><div style="height:40px"></div><div>Name: _______________________________</div></div>
+    </div>
+    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;text-align:center;font-size:10px;color:#aaa">Ricardo Santo, Unipessoal Lda · RNAVT 8229 · NIF 515168882 · manager@atlanticexpress.bet · +351 962 573 300</div>
+  </div>`;
+  window.print();
+}
+
+// =============================================
+// EXCEL EXPORTS
+// =============================================
+async function exportServices(){
+  const from = document.getElementById('f-from').value;
+  const to = document.getElementById('f-to').value;
+  const ag = document.getElementById('f-agency').value;
+  let q = sb.from('services').select('*, agencies(name), drivers(full_name), vehicles(plate)').order('service_date',{ascending:false});
+  if(from) q = q.gte('service_date', from);
+  if(to) q = q.lte('service_date', to);
+  if(ag) q = q.eq('agency_id', ag);
+  const { data } = await q;
+  const rows = data || [];
+  if(!rows.length){ showToast('No data to export.'); return; }
+  const ws_data = [
+    ['Fleetly — Service Records'],
+    ['Period:', from+' to '+to],
+    ['Exported:', new Date().toLocaleDateString('pt-PT')],
+    [],
+    ['Date','Time','Client','Agency','Service','Pax','Vehicle','Driver','Price (€)','Driver Cost (€)','Margin (€)','Status','Notes']
+  ];
+  rows.forEach(s => ws_data.push([s.service_date,s.pickup_time||'',s.client_name,s.agencies?.name||'',s.service_type,s.passengers||1,s.vehicles?.plate||'',s.drivers?.full_name||'',parseFloat(s.service_price||0),parseFloat(s.driver_cost||0),parseFloat(s.service_price||0)-parseFloat(s.driver_cost||0),s.status||'',s.notes||'']));
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:20},{wch:22},{wch:18},{wch:6},{wch:12},{wch:18},{wch:10},{wch:12},{wch:10},{wch:12},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,'Services',ws);
+  XLSX.writeFile(wb,'Fleetly_Services_'+from+'_to_'+to+'.xlsx');
+}
+
+async function exportReport(){
+  const from = document.getElementById('r-from').value;
+  const to = document.getElementById('r-to').value;
+  showToast('Exporting report...');
+  await exportServices();
+}
+
+// =============================================
+// UI HELPERS
+// =============================================
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pageEl = document.getElementById('page-'+page);
+  if(pageEl) pageEl.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+page+"'")) n.classList.add('active'); });
+
+  if(page==='drivers') loadDrivers();
+  if(page==='vehicles') loadVehicles();
+  if(page==='agencies') loadAgencies();
+  if(page==='services') loadServices();
+  if(page==='reports') loadReport();
+  if(page==='dashboard') loadDashboard();
+  if(page==='driver-profile') loadDriverProfile();
+}
+
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='modal-service'){
+    document.getElementById('svc-date').value = today();
+    populateSelects();
+  }
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+function svcBadge(s){
+  const m={'Airport Transfer':'badge-at','Island Tour':'badge-it','Private Tour':'badge-pt','Hotel Transfer':'badge-ht'};
+  return `<span class="badge ${m[s]||''}">${s}</span>`;
+}
+function vehBadge(v){
+  return `<span class="badge ${v==='Minibus'?'badge-bus':'badge-car'}">${v}</span>`;
+}
+function statusBadge(s){
+  const m={'Pending':'badge-pending','Confirmed':'badge-confirmed','Completed':'badge-completed','Cancelled':'badge-cancelled'};
+  return `<span class="badge ${m[s]||''}">${s}</span>`;
+}
+function statusBadgeDriver(s){
+  return `<span class="badge ${s==='Active'?'badge-active':'badge-inactive'}">${s}</span>`;
+}
+function statusBadgeVehicle(s){
+  const m={'Available':'badge-available','On Route':'badge-onroute','Out of Service':'badge-outofservice'};
+  return `<span class="badge ${m[s]||''}">${s||'—'}</span>`;
+}
+function formatDate(d){ if(!d)return'—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+// Enter key on login
+document.addEventListener('keydown', function(e){
+  if(e.key==='Enter' && document.getElementById('auth-screen').style.display !== 'none') signIn();
+});
+
+// =============================================
+// INIT — CHECK SESSION
+// =============================================
+(async function(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){ await initApp(session.user); }
+})();
+</script>
+</body>
+</html>

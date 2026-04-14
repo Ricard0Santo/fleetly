@@ -268,6 +268,7 @@ tr:hover td{background:#f8f9fc}
           <div class="toolbar">
             <div class="toolbar-left">
               <select id="f-agency" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
+              <select id="f-driver" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All drivers</option></select>
               <select id="f-svc-type" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
                 <option value="">All services</option>
                 <option>Airport Transfer</option><option>Island Tour</option><option>Private Tour</option><option>Hotel Transfer</option>
@@ -319,6 +320,7 @@ tr:hover td{background:#f8f9fc}
             <span style="font-size:12px;color:var(--muted)">to</span>
             <input type="date" id="r-to" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
             <select id="r-agency" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
+            <select id="r-driver" onchange="loadReport()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All drivers</option></select>
             <button class="btn btn-export btn-sm" onclick="exportReport()">Export Report</button>
           </div>
         </div>
@@ -709,6 +711,13 @@ async function loadMasterData(){
 }
 
 function populateSelects(){
+  ['f-driver','r-driver'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const val = el.value;
+    el.innerHTML = '<option value="">All drivers</option>';
+    allDrivers.forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.full_name; el.appendChild(o); });
+    if(val) el.value = val;
+  });
   ['svc-agency','f-agency','r-agency'].forEach(id => {
     const el = document.getElementById(id); if(!el) return;
     const val = el.value;
@@ -791,6 +800,7 @@ function setServicePeriodByName(p){
 
 async function loadServices(){
   const ag=document.getElementById('f-agency')?.value;
+  const dr=document.getElementById('f-driver')?.value;
   const st=document.getElementById('f-svc-type')?.value;
   const ss=document.getElementById('f-status')?.value;
   const from=document.getElementById('f-from')?.value;
@@ -799,6 +809,7 @@ async function loadServices(){
   if(from) q=q.gte('service_date',from);
   if(to) q=q.lte('service_date',to);
   if(ag) q=q.eq('agency_id',ag);
+  if(dr) q=q.eq('driver_id',dr);
   if(st) q=q.eq('service_type',st);
   if(ss) q=q.eq('status',ss);
   const{data}=await q;
@@ -1355,10 +1366,12 @@ async function loadReport(){
   const from=document.getElementById('r-from').value;
   const to=document.getElementById('r-to').value;
   const ag=document.getElementById('r-agency').value;
-  let q=sb.from('services').select('*,agencies(name)');
+  const dr=document.getElementById('r-driver').value;
+  let q=sb.from('services').select('*,agencies(name),drivers(full_name)');
   if(from)q=q.gte('service_date',from);
   if(to)q=q.lte('service_date',to);
   if(ag)q=q.eq('agency_id',ag);
+  if(dr)q=q.eq('driver_id',dr);
   const{data}=await q;
   const rows=data||[];
   const rev=rows.reduce((s,e)=>s+parseFloat(e.service_price||0),0);

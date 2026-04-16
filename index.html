@@ -211,6 +211,9 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item" onclick="showPage('drivers')"><span class="nav-icon">👤</span>Drivers</div>
         <div class="nav-item" onclick="showPage('vehicles')"><span class="nav-icon">🚙</span>Vehicles</div>
         <div class="nav-item" onclick="showPage('agencies')"><span class="nav-icon">🏢</span>Agencies</div>
+        <div class="nav-section">Costs</div>
+        <div class="nav-item" onclick="showPage('vehicle-costs')"><span class="nav-icon">⛽</span>Vehicle Costs</div>
+        <div class="nav-item" onclick="showPage('company-costs')"><span class="nav-icon">💰</span>Company Costs</div>
       </div>
       <div id="driver-nav" style="display:none">
         <div class="nav-section">My Area</div>
@@ -390,6 +393,134 @@ tr:hover td{background:#f8f9fc}
               <tbody id="agencies-body"></tbody>
             </table>
             <div class="empty" id="agencies-empty" style="display:none">No agencies yet.</div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- VEHICLE COSTS -->
+      <div class="page" id="page-vehicle-costs">
+        <div class="page-title">Vehicle Costs</div>
+        <div class="page-sub">Track all costs per vehicle</div>
+
+        <!-- Sub tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="pbtn on" id="vc-tab-diesel" onclick="showVCTab('diesel')">⛽ Diesel</button>
+          <button class="pbtn" id="vc-tab-mechanic" onclick="showVCTab('mechanic')">🔧 Mechanic</button>
+          <button class="pbtn" id="vc-tab-insurance" onclick="showVCTab('insurance')">🛡️ Insurance</button>
+          <button class="pbtn" id="vc-tab-inspection" onclick="showVCTab('inspection')">📋 Inspection</button>
+        </div>
+
+        <!-- DIESEL -->
+        <div id="vc-diesel">
+          <div class="toolbar">
+            <div class="period-btns" style="margin-bottom:0">
+              <button class="pbtn on" onclick="setVCPeriod(this,'month')">This month</button>
+              <button class="pbtn" onclick="setVCPeriod(this,'q')">3 months</button>
+              <button class="pbtn" onclick="setVCPeriod(this,'year')">This year</button>
+              <button class="pbtn" onclick="setVCPeriod(this,'all')">All time</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-diesel')">+ Add Diesel</button>
+          </div>
+          <div class="metrics" id="diesel-metrics"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Litres</th><th>Cost €</th><th>Mileage</th><th>Notes</th><th></th></tr></thead>
+                <tbody id="diesel-body"></tbody>
+              </table>
+              <div class="empty" id="diesel-empty" style="display:none">No diesel records yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MECHANIC -->
+        <div id="vc-mechanic" style="display:none">
+          <div class="toolbar">
+            <div class="period-btns" style="margin-bottom:0">
+              <button class="pbtn on" onclick="setMechPeriod(this,'month')">This month</button>
+              <button class="pbtn" onclick="setMechPeriod(this,'q')">3 months</button>
+              <button class="pbtn" onclick="setMechPeriod(this,'year')">This year</button>
+              <button class="pbtn" onclick="setMechPeriod(this,'all')">All time</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-mechanic')">+ Add Record</button>
+          </div>
+          <div class="metrics" id="mechanic-metrics"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Vehicle</th><th>Category</th><th>Description</th><th>Cost €</th><th>Next Service</th><th>Notes</th><th></th></tr></thead>
+                <tbody id="mechanic-body"></tbody>
+              </table>
+              <div class="empty" id="mechanic-empty" style="display:none">No mechanic records yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INSURANCE -->
+        <div id="vc-insurance" style="display:none">
+          <div class="toolbar">
+            <div style="font-size:13px;color:var(--muted)">Insurance records per vehicle</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-insurance')">+ Add Insurance</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Vehicle</th><th>Provider</th><th>Policy No.</th><th>Start</th><th>Expiry</th><th>Cost €</th><th>Status</th><th></th></tr></thead>
+                <tbody id="insurance-body"></tbody>
+              </table>
+              <div class="empty" id="insurance-empty" style="display:none">No insurance records yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INSPECTION -->
+        <div id="vc-inspection" style="display:none">
+          <div class="toolbar">
+            <div style="font-size:13px;color:var(--muted)">Inspection records per vehicle</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-inspection')">+ Add Inspection</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Vehicle</th><th>Next Date</th><th>Cost €</th><th>Result</th><th>Alert</th><th>Notes</th><th></th></tr></thead>
+                <tbody id="inspection-body"></tbody>
+              </table>
+              <div class="empty" id="inspection-empty" style="display:none">No inspection records yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPANY COSTS -->
+      <div class="page" id="page-company-costs">
+        <div class="page-title">Company Costs</div>
+        <div class="page-sub">Track all company operating expenses</div>
+        <div class="toolbar">
+          <div class="period-btns" style="margin-bottom:0">
+            <button class="pbtn on" onclick="setCCPeriod(this,'month')">This month</button>
+            <button class="pbtn" onclick="setCCPeriod(this,'q')">3 months</button>
+            <button class="pbtn" onclick="setCCPeriod(this,'year')">This year</button>
+            <button class="pbtn" onclick="setCCPeriod(this,'all')">All time</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select id="cc-category-filter" onchange="loadCompanyCosts()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <option value="">All categories</option>
+              <option>Accounting</option><option>Internet</option><option>Mobile Phone</option>
+              <option>Company Insurance</option><option>Vehicle Insurance</option>
+              <option>Rent</option><option>Salaries</option><option>Marketing</option><option>Other</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-company-cost')">+ Add Cost</button>
+          </div>
+        </div>
+        <div class="metrics" id="cc-metrics"></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Cost €</th><th>Recurring</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="cc-body"></tbody>
+            </table>
+            <div class="empty" id="cc-empty" style="display:none">No company costs yet.</div>
           </div>
         </div>
       </div>
@@ -630,6 +761,174 @@ tr:hover td{background:#f8f9fc}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-driver-notes')">Cancel</button>
       <button class="btn btn-primary" id="notes-confirm-btn" onclick="confirmDriverAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Diesel Modal -->
+<div class="modal-overlay" id="modal-diesel">
+  <div class="modal">
+    <div class="modal-title">Add Diesel Record</div>
+    <input type="hidden" id="diesel-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="diesel-date"></div>
+      <div class="fg"><label>Vehicle</label><select id="diesel-vehicle"><option value="">Select vehicle...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Driver</label><select id="diesel-driver"><option value="">Select driver...</option></select></div>
+      <div class="fg"><label>Litres</label><input type="number" id="diesel-litres" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Cost (€)</label><input type="number" id="diesel-cost" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label>Mileage (km)</label><input type="number" id="diesel-mileage" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="diesel-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-diesel')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDiesel()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mechanic Modal -->
+<div class="modal-overlay" id="modal-mechanic">
+  <div class="modal">
+    <div class="modal-title">Add Mechanic Record</div>
+    <input type="hidden" id="mech-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="mech-date"></div>
+      <div class="fg"><label>Vehicle</label><select id="mech-vehicle"><option value="">Select vehicle...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Category</label>
+        <select id="mech-category">
+          <option value="Oil Change">Oil Change</option>
+          <option value="Brakes">Brakes</option>
+          <option value="Tires">Tires</option>
+          <option value="Filters">Filters</option>
+          <option value="Service">Service</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Washing">Washing</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Cost (€)</label><input type="number" id="mech-cost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Description</label><input type="text" id="mech-desc" placeholder="What was done..."></div>
+      <div class="fg"><label>Mileage (km)</label><input type="number" id="mech-mileage" placeholder="0"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Next service date</label><input type="date" id="mech-next-date"></div>
+      <div class="fg"><label>Next service mileage</label><input type="number" id="mech-next-mileage" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="mech-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mechanic')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMechanic()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Insurance Modal -->
+<div class="modal-overlay" id="modal-insurance">
+  <div class="modal">
+    <div class="modal-title">Add Insurance Record</div>
+    <input type="hidden" id="ins-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Vehicle</label><select id="ins-vehicle"><option value="">Select vehicle...</option></select></div>
+      <div class="fg"><label>Provider</label><input type="text" id="ins-provider" placeholder="Insurance company"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Policy number</label><input type="text" id="ins-policy" placeholder="Policy number"></div>
+      <div class="fg"><label>Cost (€)</label><input type="number" id="ins-cost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Start date</label><input type="date" id="ins-start"></div>
+      <div class="fg"><label>Expiry date</label><input type="date" id="ins-end"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="ins-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-insurance')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInsurance()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inspection Modal -->
+<div class="modal-overlay" id="modal-inspection">
+  <div class="modal">
+    <div class="modal-title">Add Inspection Record</div>
+    <input type="hidden" id="insp-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="insp-date"></div>
+      <div class="fg"><label>Vehicle</label><select id="insp-vehicle"><option value="">Select vehicle...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Next inspection date</label><input type="date" id="insp-next"></div>
+      <div class="fg"><label>Cost (€)</label><input type="number" id="insp-cost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Result</label>
+        <select id="insp-result">
+          <option value="Passed">Passed</option>
+          <option value="Failed">Failed</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </div>
+      <div class="fg"><label>Notes</label><input type="text" id="insp-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-inspection')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInspection()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Company Cost Modal -->
+<div class="modal-overlay" id="modal-company-cost">
+  <div class="modal">
+    <div class="modal-title">Add Company Cost</div>
+    <input type="hidden" id="cc-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="cc-date"></div>
+      <div class="fg"><label>Category</label>
+        <select id="cc-category">
+          <option value="Accounting">Accounting</option>
+          <option value="Internet">Internet</option>
+          <option value="Mobile Phone">Mobile Phone</option>
+          <option value="Company Insurance">Company Insurance</option>
+          <option value="Vehicle Insurance">Vehicle Insurance</option>
+          <option value="Rent">Rent</option>
+          <option value="Salaries">Salaries</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Description</label><input type="text" id="cc-desc" placeholder="What is this cost for..."></div>
+      <div class="fg"><label>Cost (€)</label><input type="number" id="cc-cost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Recurring monthly?</label>
+        <select id="cc-recurring">
+          <option value="false">No</option>
+          <option value="true">Yes</option>
+        </select>
+      </div>
+      <div class="fg"><label>Notes</label><input type="text" id="cc-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-company-cost')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCompanyCost()">Save</button>
     </div>
   </div>
 </div>
@@ -1576,6 +1875,18 @@ function showPage(page){
   if(page==='dashboard')loadDashboard();
   if(page==='approvals')loadApprovals();
   if(page==='driver-profile')loadDriverProfile();
+  if(page==='vehicle-costs'){
+    const d=getPeriodDates('month');
+    vcDateFrom=d.from;vcDateTo=d.to;
+    mechDateFrom=d.from;mechDateTo=d.to;
+    populateCostSelects();
+    loadDiesel();
+  }
+  if(page==='company-costs'){
+    const d=getPeriodDates('month');
+    ccDateFrom=d.from;ccDateTo=d.to;
+    loadCompanyCosts();
+  }
   if(page==='driver-add'){document.getElementById('da-date').value=today();populateDriverSelects();}
   const np=document.getElementById('notif-panel')||document.getElementById('notif-dropdown');if(np)np.classList.remove('open');
 }
@@ -1583,6 +1894,14 @@ function showPage(page){
 function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-service'){document.getElementById('svc-date').value=today();populateSelects();}
+  if(['modal-diesel','modal-mechanic','modal-insurance','modal-inspection'].includes(id)){
+    populateCostSelects();
+    const dateEl = document.getElementById(id.replace('modal-','').split('-')[0]+'-date');
+    if(dateEl && !dateEl.value) dateEl.value = today();
+  }
+  if(id==='modal-company-cost'){
+    document.getElementById('cc-date').value = today();
+  }
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -1615,6 +1934,400 @@ document.addEventListener('click',function(e){
   const{data:{session}}=await sb.auth.getSession();
   if(session)await initApp(session.user);
 })();
+
+// =============================================
+// PHASE 3 — VEHICLE & COMPANY COSTS
+// =============================================
+
+let vcDateFrom = '', vcDateTo = '';
+let mechDateFrom = '', mechDateTo = '';
+let ccDateFrom = '', ccDateTo = '';
+
+function showVCTab(tab){
+  ['diesel','mechanic','insurance','inspection'].forEach(t => {
+    document.getElementById('vc-'+t).style.display = t===tab ? '' : 'none';
+    document.getElementById('vc-tab-'+t).classList.toggle('on', t===tab);
+  });
+  if(tab==='diesel') loadDiesel();
+  if(tab==='mechanic') loadMechanic();
+  if(tab==='insurance') loadInsurance();
+  if(tab==='inspection') loadInspection();
+}
+
+function setVCPeriod(btn, p){
+  document.querySelectorAll('#vc-diesel .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  vcDateFrom = d.from; vcDateTo = d.to;
+  loadDiesel();
+}
+
+function setMechPeriod(btn, p){
+  document.querySelectorAll('#vc-mechanic .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  mechDateFrom = d.from; mechDateTo = d.to;
+  loadMechanic();
+}
+
+function setCCPeriod(btn, p){
+  document.querySelectorAll('#page-company-costs .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  ccDateFrom = d.from; ccDateTo = d.to;
+  loadCompanyCosts();
+}
+
+function populateCostSelects(){
+  // Populate vehicle selects in cost modals
+  ['diesel-vehicle','mech-vehicle','ins-vehicle','insp-vehicle'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const val = el.value;
+    el.innerHTML = '<option value="">Select vehicle...</option>';
+    allVehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : ''); el.appendChild(o); });
+    if(val) el.value = val;
+  });
+  // Populate driver select in diesel modal
+  const drvEl = document.getElementById('diesel-driver');
+  if(drvEl){
+    const val = drvEl.value;
+    drvEl.innerHTML = '<option value="">Select driver...</option>';
+    allDrivers.forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.full_name; drvEl.appendChild(o); });
+    if(val) drvEl.value = val;
+  }
+}
+
+// ---- DIESEL ----
+async function loadDiesel(){
+  let q = sb.from('diesel_records').select('*,vehicles(plate,make,model),drivers(full_name)')
+    .eq('company_id', currentProfile.company_id).order('date',{ascending:false});
+  if(vcDateFrom) q = q.gte('date', vcDateFrom);
+  if(vcDateTo) q = q.lte('date', vcDateTo);
+  const {data} = await q;
+  const rows = data||[];
+
+  const totalLitres = rows.reduce((s,r)=>s+parseFloat(r.litres||0),0);
+  const totalCost = rows.reduce((s,r)=>s+parseFloat(r.cost||0),0);
+  document.getElementById('diesel-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total Records</div><div class="metric-value teal">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Total Litres</div><div class="metric-value">${totalLitres.toFixed(1)}L</div></div>
+    <div class="metric"><div class="metric-label">Total Cost</div><div class="metric-value teal">€${totalCost.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Avg Cost/Litre</div><div class="metric-value">€${totalLitres>0?(totalCost/totalLitres).toFixed(3):'0.000'}</div></div>
+  `;
+
+  const tbody = document.getElementById('diesel-body');
+  const empty = document.getElementById('diesel-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+    <td>${r.drivers?.full_name||'—'}</td>
+    <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
+    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+    <td>${r.mileage?r.mileage+'km':'—'}</td>
+    <td>${r.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteDiesel('${r.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+async function saveDiesel(){
+  const id = document.getElementById('diesel-id').value;
+  const data = {
+    date: document.getElementById('diesel-date').value,
+    vehicle_id: document.getElementById('diesel-vehicle').value||null,
+    driver_id: document.getElementById('diesel-driver').value||null,
+    litres: parseFloat(document.getElementById('diesel-litres').value)||0,
+    cost: parseFloat(document.getElementById('diesel-cost').value)||0,
+    mileage: parseInt(document.getElementById('diesel-mileage').value)||null,
+    notes: document.getElementById('diesel-notes').value.trim(),
+    company_id: currentProfile.company_id
+  };
+  if(!data.date){showToast('Please enter a date.');return;}
+  if(id){await sb.from('diesel_records').update(data).eq('id',id);}
+  else{await sb.from('diesel_records').insert(data);}
+  closeModal('modal-diesel');
+  resetDieselForm();
+  loadDiesel();
+  showToast('Diesel record saved!');
+}
+
+async function deleteDiesel(id){
+  if(!confirm('Delete this diesel record?'))return;
+  await sb.from('diesel_records').delete().eq('id',id);
+  loadDiesel();
+  showToast('Record deleted.');
+}
+
+function resetDieselForm(){
+  ['diesel-id','diesel-litres','diesel-cost','diesel-mileage','diesel-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('diesel-date').value = today();
+  document.getElementById('diesel-vehicle').value = '';
+  document.getElementById('diesel-driver').value = '';
+}
+
+// ---- MECHANIC ----
+async function loadMechanic(){
+  let q = sb.from('mechanic_records').select('*,vehicles(plate,make,model)')
+    .eq('company_id', currentProfile.company_id).order('date',{ascending:false});
+  if(mechDateFrom) q = q.gte('date', mechDateFrom);
+  if(mechDateTo) q = q.lte('date', mechDateTo);
+  const {data} = await q;
+  const rows = data||[];
+
+  const totalCost = rows.reduce((s,r)=>s+parseFloat(r.cost||0),0);
+  const byCategory = {};
+  rows.forEach(r=>{byCategory[r.category]=(byCategory[r.category]||0)+parseFloat(r.cost||0);});
+  document.getElementById('mechanic-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total Records</div><div class="metric-value teal">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Total Cost</div><div class="metric-value teal">€${totalCost.toFixed(2)}</div></div>
+    ${Object.keys(byCategory).map(c=>`<div class="metric"><div class="metric-label">${c}</div><div class="metric-value">€${byCategory[c].toFixed(2)}</div></div>`).join('')}
+  `;
+
+  const tbody = document.getElementById('mechanic-body');
+  const empty = document.getElementById('mechanic-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+    <td><span class="badge" style="background:#EEF2FF;color:#3730A3">${r.category}</span></td>
+    <td>${r.description||'—'}</td>
+    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+    <td>${r.next_service_date?formatDate(r.next_service_date):'—'}</td>
+    <td>${r.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteMechanic('${r.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+async function saveMechanic(){
+  const id = document.getElementById('mech-id').value;
+  const data = {
+    date: document.getElementById('mech-date').value,
+    vehicle_id: document.getElementById('mech-vehicle').value||null,
+    category: document.getElementById('mech-category').value,
+    description: document.getElementById('mech-desc').value.trim(),
+    cost: parseFloat(document.getElementById('mech-cost').value)||0,
+    mileage: parseInt(document.getElementById('mech-mileage').value)||null,
+    next_service_date: document.getElementById('mech-next-date').value||null,
+    next_service_mileage: parseInt(document.getElementById('mech-next-mileage').value)||null,
+    notes: document.getElementById('mech-notes').value.trim(),
+    company_id: currentProfile.company_id
+  };
+  if(!data.date){showToast('Please enter a date.');return;}
+  if(id){await sb.from('mechanic_records').update(data).eq('id',id);}
+  else{await sb.from('mechanic_records').insert(data);}
+  closeModal('modal-mechanic');
+  resetMechForm();
+  loadMechanic();
+  showToast('Mechanic record saved!');
+}
+
+async function deleteMechanic(id){
+  if(!confirm('Delete this record?'))return;
+  await sb.from('mechanic_records').delete().eq('id',id);
+  loadMechanic();
+  showToast('Record deleted.');
+}
+
+function resetMechForm(){
+  ['mech-id','mech-desc','mech-cost','mech-mileage','mech-next-date','mech-next-mileage','mech-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mech-date').value = today();
+  document.getElementById('mech-vehicle').value = '';
+  document.getElementById('mech-category').value = 'Oil Change';
+}
+
+// ---- INSURANCE ----
+async function loadInsurance(){
+  const {data} = await sb.from('insurance_records').select('*,vehicles(plate,make,model)')
+    .eq('company_id', currentProfile.company_id).order('end_date',{ascending:true});
+  const rows = data||[];
+  const tbody = document.getElementById('insurance-body');
+  const empty = document.getElementById('insurance-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  const now = today();
+  tbody.innerHTML = rows.map(r=>{
+    const daysLeft = r.end_date ? Math.floor((new Date(r.end_date)-new Date(now))/(1000*60*60*24)) : null;
+    const alertStyle = daysLeft!==null && daysLeft<=30 ? 'color:#DC2626;font-weight:700' : daysLeft!==null && daysLeft<=60 ? 'color:#D97706;font-weight:700' : '';
+    const alertText = daysLeft!==null && daysLeft<=30 ? '⚠️ Expires soon!' : daysLeft!==null && daysLeft<=60 ? '⚡ Renew soon' : '✅ Active';
+    return `<tr>
+      <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+      <td>${r.provider||'—'}</td>
+      <td>${r.policy_number||'—'}</td>
+      <td>${r.start_date?formatDate(r.start_date):'—'}</td>
+      <td style="${alertStyle}">${r.end_date?formatDate(r.end_date):'—'}</td>
+      <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+      <td style="${alertStyle}">${alertText}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteInsurance('${r.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function saveInsurance(){
+  const id = document.getElementById('ins-id').value;
+  const data = {
+    vehicle_id: document.getElementById('ins-vehicle').value||null,
+    provider: document.getElementById('ins-provider').value.trim(),
+    policy_number: document.getElementById('ins-policy').value.trim(),
+    start_date: document.getElementById('ins-start').value||null,
+    end_date: document.getElementById('ins-end').value||null,
+    cost: parseFloat(document.getElementById('ins-cost').value)||0,
+    notes: document.getElementById('ins-notes').value.trim(),
+    company_id: currentProfile.company_id
+  };
+  if(id){await sb.from('insurance_records').update(data).eq('id',id);}
+  else{await sb.from('insurance_records').insert(data);}
+  closeModal('modal-insurance');
+  resetInsForm();
+  loadInsurance();
+  showToast('Insurance record saved!');
+}
+
+async function deleteInsurance(id){
+  if(!confirm('Delete this record?'))return;
+  await sb.from('insurance_records').delete().eq('id',id);
+  loadInsurance();
+  showToast('Record deleted.');
+}
+
+function resetInsForm(){
+  ['ins-id','ins-provider','ins-policy','ins-start','ins-end','ins-cost','ins-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ins-vehicle').value='';
+}
+
+// ---- INSPECTION ----
+async function loadInspection(){
+  const {data} = await sb.from('inspection_records').select('*,vehicles(plate,make,model)')
+    .eq('company_id', currentProfile.company_id).order('next_date',{ascending:true});
+  const rows = data||[];
+  const tbody = document.getElementById('inspection-body');
+  const empty = document.getElementById('inspection-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  const now = today();
+  tbody.innerHTML = rows.map(r=>{
+    const daysLeft = r.next_date ? Math.floor((new Date(r.next_date)-new Date(now))/(1000*60*60*24)) : null;
+    const alertStyle = daysLeft!==null && daysLeft<=30 ? 'color:#DC2626;font-weight:700' : daysLeft!==null && daysLeft<=60 ? 'color:#D97706;font-weight:700' : '';
+    const alertText = daysLeft!==null && daysLeft<=30 ? '⚠️ Due soon!' : daysLeft!==null && daysLeft<=60 ? '⚡ Coming up' : '✅ OK';
+    const resultStyle = r.result==='Failed'?'badge-cancelled':r.result==='Passed'?'badge-completed':'badge-pending';
+    return `<tr>
+      <td>${r.date?formatDate(r.date):'—'}</td>
+      <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+      <td style="${alertStyle}">${r.next_date?formatDate(r.next_date):'—'}</td>
+      <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+      <td><span class="badge ${resultStyle}">${r.result||'—'}</span></td>
+      <td style="${alertStyle}">${alertText}</td>
+      <td>${r.notes||'—'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteInspection('${r.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function saveInspection(){
+  const id = document.getElementById('insp-id').value;
+  const data = {
+    date: document.getElementById('insp-date').value,
+    vehicle_id: document.getElementById('insp-vehicle').value||null,
+    next_date: document.getElementById('insp-next').value||null,
+    cost: parseFloat(document.getElementById('insp-cost').value)||0,
+    result: document.getElementById('insp-result').value,
+    notes: document.getElementById('insp-notes').value.trim(),
+    company_id: currentProfile.company_id
+  };
+  if(!data.date){showToast('Please enter a date.');return;}
+  if(id){await sb.from('inspection_records').update(data).eq('id',id);}
+  else{await sb.from('inspection_records').insert(data);}
+  closeModal('modal-inspection');
+  resetInspForm();
+  loadInspection();
+  showToast('Inspection record saved!');
+}
+
+async function deleteInspection(id){
+  if(!confirm('Delete this record?'))return;
+  await sb.from('inspection_records').delete().eq('id',id);
+  loadInspection();
+  showToast('Record deleted.');
+}
+
+function resetInspForm(){
+  ['insp-id','insp-date','insp-next','insp-cost','insp-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('insp-vehicle').value='';
+  document.getElementById('insp-result').value='Passed';
+}
+
+// ---- COMPANY COSTS ----
+async function loadCompanyCosts(){
+  const cat = document.getElementById('cc-category-filter')?.value;
+  let q = sb.from('company_costs').select('*')
+    .eq('company_id', currentProfile.company_id).order('date',{ascending:false});
+  if(ccDateFrom) q = q.gte('date', ccDateFrom);
+  if(ccDateTo) q = q.lte('date', ccDateTo);
+  if(cat) q = q.eq('category', cat);
+  const {data} = await q;
+  const rows = data||[];
+
+  const totalCost = rows.reduce((s,r)=>s+parseFloat(r.cost||0),0);
+  const byCategory = {};
+  rows.forEach(r=>{byCategory[r.category]=(byCategory[r.category]||0)+parseFloat(r.cost||0);});
+  const topCats = Object.keys(byCategory).sort((a,b)=>byCategory[b]-byCategory[a]).slice(0,4);
+
+  document.getElementById('cc-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total Costs</div><div class="metric-value teal">€${totalCost.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Records</div><div class="metric-value">${rows.length}</div></div>
+    ${topCats.map(c=>`<div class="metric"><div class="metric-label">${c}</div><div class="metric-value">€${byCategory[c].toFixed(2)}</div></div>`).join('')}
+  `;
+
+  const tbody = document.getElementById('cc-body');
+  const empty = document.getElementById('cc-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td><span class="badge" style="background:#EEF2FF;color:#3730A3">${r.category}</span></td>
+    <td>${r.description||'—'}</td>
+    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+    <td>${r.recurring?'<span class="badge badge-confirmed">Monthly</span>':'—'}</td>
+    <td>${r.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteCompanyCost('${r.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+async function saveCompanyCost(){
+  const id = document.getElementById('cc-id').value;
+  const data = {
+    date: document.getElementById('cc-date').value,
+    category: document.getElementById('cc-category').value,
+    description: document.getElementById('cc-desc').value.trim(),
+    cost: parseFloat(document.getElementById('cc-cost').value)||0,
+    recurring: document.getElementById('cc-recurring').value==='true',
+    notes: document.getElementById('cc-notes').value.trim(),
+    company_id: currentProfile.company_id
+  };
+  if(!data.date){showToast('Please enter a date.');return;}
+  if(id){await sb.from('company_costs').update(data).eq('id',id);}
+  else{await sb.from('company_costs').insert(data);}
+  closeModal('modal-company-cost');
+  resetCCForm();
+  loadCompanyCosts();
+  showToast('Cost record saved!');
+}
+
+async function deleteCompanyCost(id){
+  if(!confirm('Delete this cost record?'))return;
+  await sb.from('company_costs').delete().eq('id',id);
+  loadCompanyCosts();
+  showToast('Record deleted.');
+}
+
+function resetCCForm(){
+  ['cc-id','cc-desc','cc-cost','cc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cc-date').value = today();
+  document.getElementById('cc-category').value = 'Other';
+  document.getElementById('cc-recurring').value = 'false';
+}
+
 </script>
 </body>
 </html>

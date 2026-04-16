@@ -741,14 +741,33 @@ function populateSelects(){
   if(vehEl){ const val=vehEl.value; vehEl.innerHTML='<option value="">Select vehicle...</option>'; allVehicles.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.plate+(v.make?' — '+v.make+' '+v.model:'');vehEl.appendChild(o);}); if(val)vehEl.value=val; }
 }
 
-function populateDriverSelects(){
-  ['da-agency'].forEach(id => {
-    const el = document.getElementById(id); if(!el) return;
-    el.innerHTML = '<option value="">Select agency...</option>';
-    allAgencies.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.name; el.appendChild(o); });
-  });
-  const vehEl = document.getElementById('da-vehicle');
-  if(vehEl){ vehEl.innerHTML='<option value="">Select vehicle...</option>'; allVehicles.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.plate+(v.make?' — '+v.make:'');vehEl.appendChild(o);}); }
+async function populateDriverSelects(){
+  const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  if(!companyId) return;
+  try {
+    const [agRes, veRes] = await Promise.all([
+      sb.from('agencies').select('*').eq('company_id', companyId).order('name'),
+      sb.from('vehicles').select('*').eq('company_id', companyId).order('plate')
+    ]);
+    const agencies = agRes.data || [];
+    const vehicles = veRes.data || [];
+    // Populate agency selects
+    ['da-agency','dsvc-agency'].forEach(id => {
+      const el = document.getElementById(id); if(!el) return;
+      const val = el.value;
+      el.innerHTML = '<option value="">Select agency...</option>';
+      agencies.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.name; el.appendChild(o); });
+      if(val) el.value = val;
+    });
+    // Populate vehicle selects
+    ['da-vehicle','dsvc-vehicle'].forEach(id => {
+      const el = document.getElementById(id); if(!el) return;
+      const val = el.value;
+      el.innerHTML = '<option value="">Select vehicle...</option>';
+      vehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.plate+(v.make?' — '+v.make+' '+v.model:''); el.appendChild(o); });
+      if(val) el.value = val;
+    });
+  } catch(e) { console.log('populateDriverSelects error:', e); }
 }
 
 // =============================================

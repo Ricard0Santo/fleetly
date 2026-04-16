@@ -2132,6 +2132,7 @@ function statusBadge(s){const m={'Pending':'badge-pending','Confirmed':'badge-co
 function statusBadgeDriver(s){return `<span class="badge ${s==='Active'?'badge-active':'badge-inactive'}">${s}</span>`;}
 function statusBadgeVehicle(s){const m={'Available':'badge-available','On Route':'badge-onroute','Out of Service':'badge-outofservice'};return `<span class="badge ${m[s]||''}">${s||'—'}</span>`;}
 function formatDate(d){if(!d)return'—';const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function timeAgo(ts){if(!ts)return'—';const diff=Math.floor((new Date()-new Date(ts))/1000);if(diff<60)return'Just now';if(diff<3600)return Math.floor(diff/60)+' min ago';if(diff<86400)return Math.floor(diff/3600)+' hr ago';return Math.floor(diff/86400)+' day(s) ago';}
 
 document.querySelectorAll('.modal-overlay').forEach(overlay=>{
   overlay.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
@@ -3024,11 +3025,13 @@ async function sendMessage(){
 }
 
 async function loadAdminInbox(){
-  const {data} = await sb.from('messages')
+  // Admin sees messages sent TO them (from drivers)
+  const {data, error} = await sb.from('messages')
     .select('*')
     .eq('company_id', currentProfile.company_id)
-    .eq('recipient_type', 'admin')
+    .neq('sender_id', currentUser.id)
     .order('created_at', {ascending: false});
+  if(error) console.error('Inbox error:', error);
   renderMessageList('msg-inbox-list', data||[], false);
 }
 
@@ -3070,12 +3073,12 @@ async function sendDriverMessage(){
 
 async function loadDriverInbox(){
   const companyId = currentDriver?.company_id || currentProfile?.company_id;
-  const {data} = await sb.from('messages')
+  const {data, error} = await sb.from('messages')
     .select('*')
     .eq('company_id', companyId)
-    .or('recipient_id.eq.' + currentUser.id + ',recipient_type.eq.all_drivers')
     .neq('sender_id', currentUser.id)
     .order('created_at', {ascending: false});
+  if(error) console.error('Driver inbox error:', error);
   renderMessageList('dmsg-inbox-list', data||[], false);
   // Mark all as read
   if(data && data.length){

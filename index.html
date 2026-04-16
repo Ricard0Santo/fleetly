@@ -1515,7 +1515,7 @@ function showPage(page){
   if(page==='approvals')loadApprovals();
   if(page==='driver-profile')loadDriverProfile();
   if(page==='driver-add'){document.getElementById('da-date').value=today();populateDriverSelects();}
-  document.getElementById('notif-panel').classList.remove('open');
+  const np=document.getElementById('notif-panel')||document.getElementById('notif-dropdown');if(np)np.classList.remove('open');
 }
 
 function openModal(id){

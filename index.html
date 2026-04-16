@@ -2633,7 +2633,7 @@ async function loadByVehicle(){
 
   // Load all cost data in parallel
   const [dieselRes, mechRes, insRes, inspRes, veRes] = await Promise.all([
-    sb.from('diesel_records').select('vehicle_id,cost').eq('company_id',cid).eq('status','Approved').gte('date',from).lte('date',to),
+    sb.from('diesel_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
     sb.from('mechanic_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
     sb.from('insurance_records').select('vehicle_id,cost').eq('company_id',cid),
     sb.from('inspection_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
@@ -2685,9 +2685,8 @@ async function loadByVehicle(){
   const tbody = document.getElementById('byvehicle-body');
   const empty = document.getElementById('byvehicle-empty');
 
-  const hasData = rows.some(r=>r.diesel+r.mechanic+r.insurance+r.inspection>0);
-  if(!hasData){ tbody.innerHTML=''; empty.style.display=''; return; }
-  empty.style.display='none';
+  if(!vehicles.length){ document.getElementById('byvehicle-body').innerHTML=''; document.getElementById('byvehicle-empty').style.display=''; return; }
+  document.getElementById('byvehicle-empty').style.display='none';
 
   tbody.innerHTML = rows
     .map(r => ({...r, total: r.diesel+r.mechanic+r.insurance+r.inspection}))

@@ -219,6 +219,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-section">My Area</div>
         <div class="nav-item active" onclick="showPage('driver-home')"><span class="nav-icon">📋</span>My Services</div>
         <div class="nav-item" onclick="showPage('driver-add')"><span class="nav-icon">➕</span>Add Service</div>
+        <div class="nav-item" onclick="showPage('driver-diesel')"><span class="nav-icon">⛽</span>My Diesel</div>
         <div class="nav-item" onclick="showPage('driver-profile')"><span class="nav-icon">👤</span>My Profile</div>
       </div>
     </div>
@@ -579,6 +580,31 @@ tr:hover td{background:#f8f9fc}
         </div>
       </div>
 
+
+      <!-- DRIVER DIESEL -->
+      <div class="page" id="page-driver-diesel">
+        <div class="page-title">My Diesel</div>
+        <div class="page-sub">Log and track your fuel records</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div class="period-btns" style="margin-bottom:0">
+            <button class="pbtn on" onclick="setDriverDieselPeriod(this,'month')">This month</button>
+            <button class="pbtn" onclick="setDriverDieselPeriod(this,'q')">3 months</button>
+            <button class="pbtn" onclick="setDriverDieselPeriod(this,'year')">This year</button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openDriverDieselModal()">+ Add Diesel</button>
+        </div>
+        <div class="metrics" id="driver-diesel-metrics"></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Vehicle</th><th>Litres</th><th>Cost €</th><th>Mileage</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="driver-diesel-body"></tbody>
+            </table>
+            <div class="empty" id="driver-diesel-empty" style="display:none">No diesel records yet. Add your first record!</div>
+          </div>
+        </div>
+      </div>
+
       <!-- DRIVER PROFILE -->
       <div class="page" id="page-driver-profile">
         <div class="page-title">My Profile</div>
@@ -929,6 +955,31 @@ tr:hover td{background:#f8f9fc}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-company-cost')">Cancel</button>
       <button class="btn btn-primary" onclick="saveCompanyCost()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Driver Diesel Modal -->
+<div class="modal-overlay" id="modal-driver-diesel">
+  <div class="modal">
+    <div class="modal-title">Log Diesel</div>
+    <input type="hidden" id="dd-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Date</label><input type="date" id="dd-date"></div>
+      <div class="fg"><label>Vehicle</label><select id="dd-vehicle"><option value="">Select vehicle...</option></select></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Litres</label><input type="number" id="dd-litres" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label>Cost (€)</label><input type="number" id="dd-cost" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Mileage (km)</label><input type="number" id="dd-mileage" placeholder="Current km reading"></div>
+      <div class="fg"><label>Notes</label><input type="text" id="dd-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-driver-diesel')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDriverDiesel()">Save</button>
     </div>
   </div>
 </div>
@@ -1875,6 +1926,11 @@ function showPage(page){
   if(page==='dashboard')loadDashboard();
   if(page==='approvals')loadApprovals();
   if(page==='driver-profile')loadDriverProfile();
+  if(page==='driver-diesel'){
+    const d=getPeriodDates('month');
+    driverDieselFrom=d.from;driverDieselTo=d.to;
+    loadDriverDiesel();
+  }
   if(page==='vehicle-costs'){
     const d=getPeriodDates('month');
     vcDateFrom=d.from;vcDateTo=d.to;
@@ -2326,6 +2382,101 @@ function resetCCForm(){
   document.getElementById('cc-date').value = today();
   document.getElementById('cc-category').value = 'Other';
   document.getElementById('cc-recurring').value = 'false';
+}
+
+
+// =============================================
+// DRIVER DIESEL
+// =============================================
+let driverDieselFrom = '', driverDieselTo = '';
+
+function setDriverDieselPeriod(btn, p){
+  document.querySelectorAll('#page-driver-diesel .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  driverDieselFrom = d.from; driverDieselTo = d.to;
+  loadDriverDiesel();
+}
+
+async function openDriverDieselModal(){
+  document.getElementById('dd-date').value = today();
+  document.getElementById('dd-id').value = '';
+  document.getElementById('dd-litres').value = '';
+  document.getElementById('dd-cost').value = '';
+  document.getElementById('dd-mileage').value = '';
+  document.getElementById('dd-notes').value = '';
+  // Load vehicles
+  const vSel = document.getElementById('dd-vehicle');
+  vSel.innerHTML = '<option value="">Select vehicle...</option>';
+  const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  const {data:vehs} = await sb.from('vehicles').select('*').eq('company_id', companyId).order('plate');
+  (vehs||[]).forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.id;
+    o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : '');
+    vSel.appendChild(o);
+  });
+  openModal('modal-driver-diesel');
+}
+
+async function saveDriverDiesel(){
+  const id = document.getElementById('dd-id').value;
+  const data = {
+    date: document.getElementById('dd-date').value,
+    vehicle_id: document.getElementById('dd-vehicle').value||null,
+    driver_id: currentDriver?.id||null,
+    litres: parseFloat(document.getElementById('dd-litres').value)||0,
+    cost: parseFloat(document.getElementById('dd-cost').value)||0,
+    mileage: parseInt(document.getElementById('dd-mileage').value)||null,
+    notes: document.getElementById('dd-notes').value.trim(),
+    company_id: currentDriver?.company_id || currentProfile?.company_id
+  };
+  if(!data.date){showToast('Please enter a date.');return;}
+  if(id){await sb.from('diesel_records').update(data).eq('id',id);}
+  else{await sb.from('diesel_records').insert(data);}
+  closeModal('modal-driver-diesel');
+  loadDriverDiesel();
+  showToast('Diesel record saved! ⛽');
+}
+
+async function loadDriverDiesel(){
+  if(!currentDriver) return;
+  let q = sb.from('diesel_records').select('*,vehicles(plate,make,model)')
+    .eq('driver_id', currentDriver.id).order('date',{ascending:false});
+  if(driverDieselFrom) q = q.gte('date', driverDieselFrom);
+  if(driverDieselTo) q = q.lte('date', driverDieselTo);
+  const {data} = await q;
+  const rows = data||[];
+
+  const totalLitres = rows.reduce((s,r)=>s+parseFloat(r.litres||0),0);
+  const totalCost = rows.reduce((s,r)=>s+parseFloat(r.cost||0),0);
+  document.getElementById('driver-diesel-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Records</div><div class="metric-value teal">${rows.length}</div></div>
+    <div class="metric"><div class="metric-label">Total Litres</div><div class="metric-value">${totalLitres.toFixed(1)}L</div></div>
+    <div class="metric"><div class="metric-label">Total Cost</div><div class="metric-value teal">€${totalCost.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">Avg €/Litre</div><div class="metric-value">€${totalLitres>0?(totalCost/totalLitres).toFixed(3):'0.000'}</div></div>
+  `;
+
+  const tbody = document.getElementById('driver-diesel-body');
+  const empty = document.getElementById('driver-diesel-empty');
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+    <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
+    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+    <td>${r.mileage?r.mileage+'km':'—'}</td>
+    <td>${r.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteDriverDiesel('${r.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+async function deleteDriverDiesel(id){
+  if(!confirm('Delete this diesel record?'))return;
+  await sb.from('diesel_records').delete().eq('id',id);
+  loadDriverDiesel();
+  showToast('Record deleted.');
 }
 
 </script>

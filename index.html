@@ -492,6 +492,36 @@ tr:hover td{background:#f8f9fc}
             </div>
           </div>
         </div>
+
+        <!-- BY VEHICLE SUMMARY -->
+        <div id="vc-byvehicle" style="display:none">
+          <div class="toolbar">
+            <div class="period-btns" style="margin-bottom:0">
+              <button class="pbtn on" onclick="setByVehiclePeriod(this,'year')">This year</button>
+              <button class="pbtn" onclick="setByVehiclePeriod(this,'q')">3 months</button>
+              <button class="pbtn" onclick="setByVehiclePeriod(this,'month')">This month</button>
+              <button class="pbtn" onclick="setByVehiclePeriod(this,'all')">All time</button>
+            </div>
+            <button class="btn btn-export btn-sm" onclick="exportVehicleCosts()">Export Excel</button>
+          </div>
+          <div class="metrics" id="byvehicle-totals"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Vehicle</th><th>Make & Model</th>
+                  <th>⛽ Diesel €</th><th>🔧 Mechanic €</th>
+                  <th>🛡️ Insurance €</th><th>📋 Inspection €</th>
+                  <th>💰 Total €</th>
+                </tr></thead>
+                <tbody id="byvehicle-body"></tbody>
+              </table>
+              <div class="empty" id="byvehicle-empty" style="display:none">No cost records found.</div>
+            </div>
+          </div>
+          <div id="byvehicle-detail"></div>
+        </div>
+
       </div>
 
       <!-- COMPANY COSTS -->

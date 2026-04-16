@@ -1086,20 +1086,24 @@ async function loadDriverServices(from,to){
   `).join('');
 }
 
-function openDriverNotes(svcId, action, title){
+async function openDriverNotes(svcId, action, title){
   document.getElementById('notes-svc-id').value = svcId;
   document.getElementById('notes-action').value = action;
   document.getElementById('modal-notes-title').textContent = title;
   document.getElementById('driver-note-text').value = '';
-  // Populate vehicle selector
+  // Load and populate vehicle selector fresh from database
   const vSel = document.getElementById('notes-vehicle');
   vSel.innerHTML = '<option value="">Select vehicle...</option>';
-  (allDriverVehicles||[]).forEach(v => {
-    const o = document.createElement('option');
-    o.value = v.id;
-    o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : '');
-    vSel.appendChild(o);
-  });
+  try {
+    const companyId = currentDriver?.company_id || currentProfile?.company_id;
+    const {data:vehs} = await sb.from('vehicles').select('*').eq('company_id', companyId).eq('status','Available').order('plate');
+    (vehs||[]).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.id;
+      o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : '');
+      vSel.appendChild(o);
+    });
+  } catch(e) { console.log('Vehicle load error:', e); }
   // Hide vehicle selector for cancellations
   document.getElementById('vehicle-selector-row').style.display = action==='cancelled' ? 'none' : '';
   const btn = document.getElementById('notes-confirm-btn');

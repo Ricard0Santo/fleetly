@@ -689,6 +689,8 @@ async function initApp(user){
     document.getElementById('driver-nav').style.display = 'block';
     const { data: drv } = await sb.from('drivers').select('*').eq('profile_id', user.id).single();
     currentDriver = drv;
+    if(drv){ currentProfile = Object.assign({}, profile, {company_id: drv.company_id}); }
+    loadDriverProfile();
     showPage('driver-home');
     setDriverPeriodByName('today');
     populateDriverSelects();

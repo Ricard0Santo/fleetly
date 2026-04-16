@@ -1056,8 +1056,7 @@ async function loadDriverServices(from,to){
     </div>
   ` : '';
   if(!rows.length){list.innerHTML='<div class="empty">No services for this period.</div>';return;}
-  list.innerHTML = summary + rows.map
-  list.innerHTML=rows.map(s=>`
+  list.innerHTML = summary + rows.map(s=>`
     <div class="service-card">
       <div class="service-card-header">
         <div>

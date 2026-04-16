@@ -1947,14 +1947,15 @@ function showPage(page){
     loadDriverDiesel();
   }
   if(page==='vehicle-costs'){
-    const d=getPeriodDates('month');
+    const d=getPeriodDates('year');
     vcDateFrom=d.from;vcDateTo=d.to;
     mechDateFrom=d.from;mechDateTo=d.to;
+    byVehicleFrom=d.from;byVehicleTo=d.to;
     populateCostSelects();
     loadDiesel();
   }
   if(page==='company-costs'){
-    const d=getPeriodDates('month');
+    const d=getPeriodDates('year');
     ccDateFrom=d.from;ccDateTo=d.to;
     loadCompanyCosts();
   }
@@ -2014,6 +2015,17 @@ let vcDateFrom = '', vcDateTo = '';
 let byVehicleFrom = '', byVehicleTo = '';
 let mechDateFrom = '', mechDateTo = '';
 let ccDateFrom = '', ccDateTo = '';
+
+// Initialize period dates immediately
+(function initPeriods(){
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(),0,1).toISOString().split('T')[0];
+  const tod = now.toISOString().split('T')[0];
+  vcDateFrom = yearStart; vcDateTo = tod;
+  mechDateFrom = yearStart; mechDateTo = tod;
+  byVehicleFrom = yearStart; byVehicleTo = tod;
+  ccDateFrom = yearStart; ccDateTo = tod;
+})();
 
 function showVCTab(tab){
   ['diesel','mechanic','insurance','inspection','byvehicle'].forEach(t => {
@@ -2221,8 +2233,10 @@ function resetMechForm(){
 
 // ---- INSURANCE ----
 async function loadInsurance(){
-  const {data} = await sb.from('insurance_records').select('*,vehicles(plate,make,model)')
-    .eq('company_id', currentProfile.company_id).order('end_date',{ascending:true});
+  const {data} = await sb.from('insurance_records')
+    .select('*,vehicles(plate,make,model)')
+    .eq('company_id', currentProfile.company_id)
+    .order('end_date',{ascending:true});
   const rows = data||[];
   const tbody = document.getElementById('insurance-body');
   const empty = document.getElementById('insurance-empty');
@@ -2280,8 +2294,10 @@ function resetInsForm(){
 
 // ---- INSPECTION ----
 async function loadInspection(){
-  const {data} = await sb.from('inspection_records').select('*,vehicles(plate,make,model)')
-    .eq('company_id', currentProfile.company_id).order('next_date',{ascending:true});
+  const {data} = await sb.from('inspection_records')
+    .select('*,vehicles(plate,make,model)')
+    .eq('company_id', currentProfile.company_id)
+    .order('next_date',{ascending:true});
   const rows = data||[];
   const tbody = document.getElementById('inspection-body');
   const empty = document.getElementById('inspection-empty');
@@ -2342,10 +2358,14 @@ function resetInspForm(){
 // ---- COMPANY COSTS ----
 async function loadCompanyCosts(){
   const cat = document.getElementById('cc-category-filter')?.value;
+  const yearStart = new Date(new Date().getFullYear(),0,1).toISOString().split('T')[0];
+  const tod = new Date().toISOString().split('T')[0];
+  const cfrom = ccDateFrom || yearStart;
+  const cto = ccDateTo || tod;
   let q = sb.from('company_costs').select('*')
-    .eq('company_id', currentProfile.company_id).order('date',{ascending:false});
-  if(ccDateFrom) q = q.gte('date', ccDateFrom);
-  if(ccDateTo) q = q.lte('date', ccDateTo);
+    .eq('company_id', currentProfile.company_id)
+    .gte('date', cfrom).lte('date', cto)
+    .order('date',{ascending:false});
   if(cat) q = q.eq('category', cat);
   const {data} = await q;
   const rows = data||[];
@@ -2366,7 +2386,7 @@ async function loadCompanyCosts(){
   if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
   empty.style.display='none';
   tbody.innerHTML = rows.map(r=>`<tr>
-    <td>${r.date}</td>
+    <td>${formatDate(r.date)}</td>
     <td><span class="badge" style="background:#EEF2FF;color:#3730A3">${r.category}</span></td>
     <td>${r.description||'—'}</td>
     <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
@@ -2414,7 +2434,8 @@ function resetCCForm(){
 // =============================================
 // DRIVER DIESEL
 // =============================================
-let driverDieselFrom = '', driverDieselTo = '';
+let driverDieselFrom = new Date(new Date().getFullYear(),0,1).toISOString().split('T')[0];
+let driverDieselTo = new Date().toISOString().split('T')[0];
 
 function setDriverDieselPeriod(btn, p){
   document.querySelectorAll('#page-driver-diesel .pbtn').forEach(b=>b.classList.remove('on'));
@@ -2632,11 +2653,13 @@ async function loadByVehicle(){
   const to = byVehicleTo;
 
   // Load all cost data in parallel
+  const bvFrom = from || new Date(new Date().getFullYear(),0,1).toISOString().split('T')[0];
+  const bvTo = to || new Date().toISOString().split('T')[0];
   const [dieselRes, mechRes, insRes, inspRes, veRes] = await Promise.all([
-    sb.from('diesel_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
-    sb.from('mechanic_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
+    sb.from('diesel_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',bvFrom).lte('date',bvTo),
+    sb.from('mechanic_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',bvFrom).lte('date',bvTo),
     sb.from('insurance_records').select('vehicle_id,cost').eq('company_id',cid),
-    sb.from('inspection_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
+    sb.from('inspection_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',bvFrom).lte('date',bvTo),
     sb.from('vehicles').select('*').eq('company_id',cid).order('plate')
   ]);
 

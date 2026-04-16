@@ -611,12 +611,20 @@ tr:hover td{background:#f8f9fc}
 <!-- Driver Notes Modal -->
 <div class="modal-overlay" id="modal-driver-notes">
   <div class="modal">
-    <div class="modal-title" id="modal-notes-title">Add Note</div>
+    <div class="modal-title" id="modal-notes-title">Confirm Service</div>
     <input type="hidden" id="notes-svc-id">
     <input type="hidden" id="notes-action">
+    <div class="form-row" id="vehicle-selector-row">
+      <div class="fg">
+        <label>Vehicle used today</label>
+        <select id="notes-vehicle" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select vehicle...</option>
+        </select>
+      </div>
+    </div>
     <div class="form-row">
       <div class="fg"><label>Note (optional)</label>
-        <textarea id="driver-note-text" rows="4" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Add any notes about this service..."></textarea>
+        <textarea id="driver-note-text" rows="3" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Add any notes about this service..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -638,6 +646,7 @@ let currentUser = null;
 let currentProfile = null;
 let currentDriver = null;
 let allAgencies = [];
+let allDriverVehicles = [];
 let allDrivers = [];
 let allVehicles = [];
 
@@ -1034,7 +1043,20 @@ async function loadDriverServices(from,to){
   const{data}=await q;
   const rows=data||[];
   const list=document.getElementById('driver-services-list');
+  // Calculate earnings summary
+  const completed = rows.filter(r=>r.status==='Completed');
+  const cancelled = rows.filter(r=>r.status==='Cancelled');
+  const totalEarnings = completed.reduce((s,r)=>s+parseFloat(r.driver_cost||0),0);
+  const summary = rows.length > 0 ? `
+    <div style="background:var(--dark);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px">
+      <div style="text-align:center"><div style="font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Total</div><div style="font-size:22px;font-weight:700;color:#fff">${rows.length}</div></div>
+      <div style="text-align:center"><div style="font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Completed</div><div style="font-size:22px;font-weight:700;color:var(--teal)">${completed.length}</div></div>
+      <div style="text-align:center"><div style="font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Cancelled</div><div style="font-size:22px;font-weight:700;color:#F87171">${cancelled.length}</div></div>
+      <div style="text-align:center"><div style="font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">My Earnings</div><div style="font-size:22px;font-weight:700;color:var(--teal)">€${totalEarnings.toFixed(2)}</div></div>
+    </div>
+  ` : '';
   if(!rows.length){list.innerHTML='<div class="empty">No services for this period.</div>';return;}
+  list.innerHTML = summary + rows.map
   list.innerHTML=rows.map(s=>`
     <div class="service-card">
       <div class="service-card-header">
@@ -1070,10 +1092,22 @@ function openDriverNotes(svcId, action, title){
   document.getElementById('notes-action').value = action;
   document.getElementById('modal-notes-title').textContent = title;
   document.getElementById('driver-note-text').value = '';
+  // Populate vehicle selector
+  const vSel = document.getElementById('notes-vehicle');
+  vSel.innerHTML = '<option value="">Select vehicle...</option>';
+  (allDriverVehicles||[]).forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.id;
+    o.textContent = v.plate + (v.make ? ' — '+v.make+' '+v.model : '');
+    vSel.appendChild(o);
+  });
+  // Hide vehicle selector for cancellations
+  document.getElementById('vehicle-selector-row').style.display = action==='cancelled' ? 'none' : '';
   const btn = document.getElementById('notes-confirm-btn');
   btn.textContent = action==='completed' ? '✅ Confirm Completed' : '❌ Confirm Cancelled';
-  btn.className = 'btn ' + (action==='completed'?'btn-success':'btn-sm');
-  if(action==='cancelled') btn.style.cssText='background:#FEE2E2;color:#991B1B;border:none;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer';
+  btn.className = 'btn ' + (action==='completed'?'btn-primary':'btn-sm');
+  if(action==='cancelled') btn.style.cssText='background:#FEE2E2;color:#991B1B;border:none;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif';
+  else btn.style.cssText='';
   openModal('modal-driver-notes');
 }
 
@@ -1081,13 +1115,19 @@ async function confirmDriverAction(){
   const id = document.getElementById('notes-svc-id').value;
   const action = document.getElementById('notes-action').value;
   const note = document.getElementById('driver-note-text').value.trim();
+  const vehicleId = document.getElementById('notes-vehicle').value;
   const newStatus = action==='completed' ? 'Completed' : 'Cancelled';
-  await sb.from('services').update({
+  const updateData = {
     status: newStatus,
     driver_notes: note||null,
     confirmed_at: new Date().toISOString(),
     confirmed_by: currentUser.id
-  }).eq('id',id);
+  };
+  // If cancelled, zero out driver cost
+  if(action==='cancelled') updateData.driver_cost = 0;
+  // If vehicle selected, update vehicle
+  if(vehicleId && action==='completed') updateData.vehicle_id = vehicleId;
+  await sb.from('services').update(updateData).eq('id',id);
   // Create notification for admin
   await sb.from('notifications').insert({
     company_id: currentDriver?.company_id || currentProfile?.company_id,

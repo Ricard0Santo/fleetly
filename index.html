@@ -410,6 +410,7 @@ tr:hover td{background:#f8f9fc}
           <button class="pbtn" id="vc-tab-mechanic" onclick="showVCTab('mechanic')">🔧 Mechanic</button>
           <button class="pbtn" id="vc-tab-insurance" onclick="showVCTab('insurance')">🛡️ Insurance</button>
           <button class="pbtn" id="vc-tab-inspection" onclick="showVCTab('inspection')">📋 Inspection</button>
+          <button class="pbtn" id="vc-tab-byvehicle" onclick="showVCTab('byvehicle')">🚗 By Vehicle</button>
         </div>
 
         <!-- DIESEL -->
@@ -2010,11 +2011,12 @@ document.addEventListener('click',function(e){
 // =============================================
 
 let vcDateFrom = '', vcDateTo = '';
+let byVehicleFrom = '', byVehicleTo = '';
 let mechDateFrom = '', mechDateTo = '';
 let ccDateFrom = '', ccDateTo = '';
 
 function showVCTab(tab){
-  ['diesel','mechanic','insurance','inspection'].forEach(t => {
+  ['diesel','mechanic','insurance','inspection','byvehicle'].forEach(t => {
     document.getElementById('vc-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('vc-tab-'+t).classList.toggle('on', t===tab);
   });
@@ -2022,6 +2024,7 @@ function showVCTab(tab){
   if(tab==='mechanic') loadMechanic();
   if(tab==='insurance') loadInsurance();
   if(tab==='inspection') loadInspection();
+  if(tab==='byvehicle'){ const d=getPeriodDates('month'); byVehicleFrom=d.from; byVehicleTo=d.to; loadByVehicle(); }
 }
 
 function setVCPeriod(btn, p){
@@ -2609,6 +2612,173 @@ document.addEventListener('change', function(e){
     }
   }
 });
+
+
+// =============================================
+// BY VEHICLE COST SUMMARY
+// =============================================
+
+function setByVehiclePeriod(btn, p){
+  document.querySelectorAll('#vc-byvehicle .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  byVehicleFrom = d.from; byVehicleTo = d.to;
+  loadByVehicle();
+}
+
+async function loadByVehicle(){
+  const cid = currentProfile.company_id;
+  const from = byVehicleFrom;
+  const to = byVehicleTo;
+
+  // Load all cost data in parallel
+  const [dieselRes, mechRes, insRes, inspRes, veRes] = await Promise.all([
+    sb.from('diesel_records').select('vehicle_id,cost').eq('company_id',cid).eq('status','Approved').gte('date',from).lte('date',to),
+    sb.from('mechanic_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
+    sb.from('insurance_records').select('vehicle_id,cost').eq('company_id',cid),
+    sb.from('inspection_records').select('vehicle_id,cost').eq('company_id',cid).gte('date',from).lte('date',to),
+    sb.from('vehicles').select('*').eq('company_id',cid).order('plate')
+  ]);
+
+  const vehicles = veRes.data || [];
+  const diesel = dieselRes.data || [];
+  const mech = mechRes.data || [];
+  const ins = insRes.data || [];
+  const insp = inspRes.data || [];
+
+  // Build cost summary per vehicle
+  const summary = {};
+  vehicles.forEach(v => {
+    summary[v.id] = {
+      plate: v.plate,
+      make: v.make||'',
+      model: v.model||'',
+      diesel: 0,
+      mechanic: 0,
+      insurance: 0,
+      inspection: 0
+    };
+  });
+
+  diesel.forEach(r => { if(summary[r.vehicle_id]) summary[r.vehicle_id].diesel += parseFloat(r.cost||0); });
+  mech.forEach(r => { if(summary[r.vehicle_id]) summary[r.vehicle_id].mechanic += parseFloat(r.cost||0); });
+  ins.forEach(r => { if(summary[r.vehicle_id]) summary[r.vehicle_id].insurance += parseFloat(r.cost||0); });
+  insp.forEach(r => { if(summary[r.vehicle_id]) summary[r.vehicle_id].inspection += parseFloat(r.cost||0); });
+
+  const rows = Object.values(summary);
+  const totalDiesel = rows.reduce((s,r)=>s+r.diesel,0);
+  const totalMech = rows.reduce((s,r)=>s+r.mechanic,0);
+  const totalIns = rows.reduce((s,r)=>s+r.insurance,0);
+  const totalInsp = rows.reduce((s,r)=>s+r.inspection,0);
+  const grandTotal = totalDiesel + totalMech + totalIns + totalInsp;
+
+  // Metrics
+  document.getElementById('byvehicle-totals').innerHTML = `
+    <div class="metric"><div class="metric-label">Total Vehicles</div><div class="metric-value">${vehicles.length}</div></div>
+    <div class="metric"><div class="metric-label">⛽ Total Diesel</div><div class="metric-value teal">€${totalDiesel.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">🔧 Total Mechanic</div><div class="metric-value">€${totalMech.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">🛡️ Total Insurance</div><div class="metric-value">€${totalIns.toFixed(2)}</div></div>
+    <div class="metric"><div class="metric-label">📋 Total Inspection</div><div class="metric-value">€${totalInsp.toFixed(2)}</div></div>
+    <div class="metric" style="border:2px solid var(--teal)"><div class="metric-label">💰 Grand Total</div><div class="metric-value teal">€${grandTotal.toFixed(2)}</div></div>
+  `;
+
+  const tbody = document.getElementById('byvehicle-body');
+  const empty = document.getElementById('byvehicle-empty');
+
+  const hasData = rows.some(r=>r.diesel+r.mechanic+r.insurance+r.inspection>0);
+  if(!hasData){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = rows
+    .map(r => ({...r, total: r.diesel+r.mechanic+r.insurance+r.inspection}))
+    .sort((a,b) => b.total - a.total)
+    .map(r => `<tr style="cursor:pointer" onclick="toggleVehicleDetail('${r.plate}')">
+      <td><strong style="font-size:14px;letter-spacing:1px">${r.plate}</strong></td>
+      <td>${r.make} ${r.model}</td>
+      <td style="color:${r.diesel>0?'#0C447C':'var(--muted)'}">€${r.diesel.toFixed(2)}</td>
+      <td style="color:${r.mechanic>0?'#3730A3':'var(--muted)'}">€${r.mechanic.toFixed(2)}</td>
+      <td style="color:${r.insurance>0?'#065F46':'var(--muted)'}">€${r.insurance.toFixed(2)}</td>
+      <td style="color:${r.inspection>0?'#92400E':'var(--muted)'}">€${r.inspection.toFixed(2)}</td>
+      <td style="font-weight:700;font-size:14px;color:${r.total>0?'var(--danger)':'var(--muted)'}">€${r.total.toFixed(2)}</td>
+    </tr>`).join('');
+
+  // Store data for detail view
+  window._vehicleSummaryData = rows;
+}
+
+function toggleVehicleDetail(plate){
+  const detailEl = document.getElementById('byvehicle-detail');
+  const row = (window._vehicleSummaryData||[]).find(r=>r.plate===plate);
+  if(!row) return;
+  const total = row.diesel+row.mechanic+row.insurance+row.inspection;
+  if(detailEl.dataset.plate === plate){
+    detailEl.innerHTML='';
+    detailEl.dataset.plate='';
+    return;
+  }
+  detailEl.dataset.plate = plate;
+  detailEl.innerHTML = `
+    <div class="card" style="margin-top:12px;border:2px solid var(--teal)">
+      <div class="card-title">Cost breakdown — ${plate} ${row.make} ${row.model}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        <div style="background:#EFF6FF;border-radius:8px;padding:14px">
+          <div style="font-size:11px;color:#1E40AF;font-weight:700;text-transform:uppercase;margin-bottom:6px">⛽ Diesel</div>
+          <div style="font-size:24px;font-weight:700;color:#1E40AF">€${row.diesel.toFixed(2)}</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px">${total>0?((row.diesel/total)*100).toFixed(1):'0'}% of total</div>
+        </div>
+        <div style="background:#EEF2FF;border-radius:8px;padding:14px">
+          <div style="font-size:11px;color:#3730A3;font-weight:700;text-transform:uppercase;margin-bottom:6px">🔧 Mechanic</div>
+          <div style="font-size:24px;font-weight:700;color:#3730A3">€${row.mechanic.toFixed(2)}</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px">${total>0?((row.mechanic/total)*100).toFixed(1):'0'}% of total</div>
+        </div>
+        <div style="background:#ECFDF5;border-radius:8px;padding:14px">
+          <div style="font-size:11px;color:#065F46;font-weight:700;text-transform:uppercase;margin-bottom:6px">🛡️ Insurance</div>
+          <div style="font-size:24px;font-weight:700;color:#065F46">€${row.insurance.toFixed(2)}</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px">${total>0?((row.insurance/total)*100).toFixed(1):'0'}% of total</div>
+        </div>
+        <div style="background:#FFFBEB;border-radius:8px;padding:14px">
+          <div style="font-size:11px;color:#92400E;font-weight:700;text-transform:uppercase;margin-bottom:6px">📋 Inspection</div>
+          <div style="font-size:24px;font-weight:700;color:#92400E">€${row.inspection.toFixed(2)}</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px">${total>0?((row.inspection/total)*100).toFixed(1):'0'}% of total</div>
+        </div>
+        <div style="background:var(--dark);border-radius:8px;padding:14px">
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:700;text-transform:uppercase;margin-bottom:6px">💰 Grand Total</div>
+          <div style="font-size:24px;font-weight:700;color:var(--teal)">€${total.toFixed(2)}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px">All costs combined</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function exportVehicleCosts(){
+  const rows = window._vehicleSummaryData || [];
+  if(!rows.length){ showToast('No data to export.'); return; }
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['Fleetly — Vehicle Cost Summary'],
+    ['Period:', byVehicleFrom + ' to ' + byVehicleTo],
+    ['Exported:', new Date().toLocaleDateString('pt-PT')],
+    [],
+    ['Vehicle','Make','Model','Diesel (€)','Mechanic (€)','Insurance (€)','Inspection (€)','Total (€)']
+  ];
+  rows.sort((a,b)=>(b.diesel+b.mechanic+b.insurance+b.inspection)-(a.diesel+a.mechanic+a.insurance+a.inspection))
+    .forEach(r=>{
+      const total = r.diesel+r.mechanic+r.insurance+r.inspection;
+      data.push([r.plate, r.make, r.model, parseFloat(r.diesel.toFixed(2)), parseFloat(r.mechanic.toFixed(2)), parseFloat(r.insurance.toFixed(2)), parseFloat(r.inspection.toFixed(2)), parseFloat(total.toFixed(2))]);
+    });
+  // Totals row
+  const td = rows.reduce((s,r)=>s+r.diesel,0);
+  const tm = rows.reduce((s,r)=>s+r.mechanic,0);
+  const ti = rows.reduce((s,r)=>s+r.insurance,0);
+  const tn = rows.reduce((s,r)=>s+r.inspection,0);
+  data.push([]);
+  data.push(['TOTAL','','',parseFloat(td.toFixed(2)),parseFloat(tm.toFixed(2)),parseFloat(ti.toFixed(2)),parseFloat(tn.toFixed(2)),parseFloat((td+tm+ti+tn).toFixed(2))]);
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:14},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, 'By Vehicle', ws);
+  XLSX.writeFile(wb, 'Fleetly_VehicleCosts_'+byVehicleFrom+'_to_'+byVehicleTo+'.xlsx');
+}
 
 </script>
 </body>

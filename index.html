@@ -2074,8 +2074,15 @@ function showPage(page){
   if(page==='dashboard')loadDashboard();
   if(page==='approvals')loadApprovals();
   if(page==='driver-profile')loadDriverProfile();
-  if(page==='messages'){ populateComposeModal(); loadAdminInbox(); loadMessageCount(); }
-  if(page==='driver-messages'){ loadDriverInbox(); loadDriverMessageCount(); }
+  if(page==='messages'){ 
+    populateComposeModal(); 
+    showMsgTab('inbox');
+    loadMessageCount(); 
+  }
+  if(page==='driver-messages'){ 
+    showDriverMsgTab('inbox');
+    loadDriverMessageCount(); 
+  }
   if(page==='driver-diesel'){
     const d=getPeriodDates('month');
     driverDieselFrom=d.from;driverDieselTo=d.to;
@@ -2945,19 +2952,27 @@ async function exportVehicleCosts(){
 // =============================================
 
 function showMsgTab(tab){
-  document.getElementById('msg-inbox').style.display = tab==='inbox' ? '' : 'none';
-  document.getElementById('msg-sent').style.display = tab==='sent' ? '' : 'none';
-  document.getElementById('msg-tab-inbox').classList.toggle('on', tab==='inbox');
-  document.getElementById('msg-tab-sent').classList.toggle('on', tab==='sent');
+  const inboxEl = document.getElementById('msg-inbox');
+  const sentEl = document.getElementById('msg-sent');
+  const inboxBtn = document.getElementById('msg-tab-inbox');
+  const sentBtn = document.getElementById('msg-tab-sent');
+  if(inboxEl) inboxEl.style.display = tab==='inbox' ? '' : 'none';
+  if(sentEl) sentEl.style.display = tab==='sent' ? '' : 'none';
+  if(inboxBtn) inboxBtn.classList.toggle('on', tab==='inbox');
+  if(sentBtn) sentBtn.classList.toggle('on', tab==='sent');
   if(tab==='inbox') loadAdminInbox();
   if(tab==='sent') loadAdminSent();
 }
 
 function showDriverMsgTab(tab){
-  document.getElementById('dmsg-inbox').style.display = tab==='inbox' ? '' : 'none';
-  document.getElementById('dmsg-sent').style.display = tab==='sent' ? '' : 'none';
-  document.getElementById('dmsg-tab-inbox').classList.toggle('on', tab==='inbox');
-  document.getElementById('dmsg-tab-sent').classList.toggle('on', tab==='sent');
+  const inboxEl = document.getElementById('dmsg-inbox');
+  const sentEl = document.getElementById('dmsg-sent');
+  const inboxBtn = document.getElementById('dmsg-tab-inbox');
+  const sentBtn = document.getElementById('dmsg-tab-sent');
+  if(inboxEl) inboxEl.style.display = tab==='inbox' ? '' : 'none';
+  if(sentEl) sentEl.style.display = tab==='sent' ? '' : 'none';
+  if(inboxBtn) inboxBtn.classList.toggle('on', tab==='inbox');
+  if(sentBtn) sentBtn.classList.toggle('on', tab==='sent');
   if(tab==='inbox') loadDriverInbox();
   if(tab==='sent') loadDriverSent();
 }
@@ -3000,8 +3015,8 @@ async function sendMessage(){
   await sb.from('messages').insert(msgData);
   closeModal('modal-compose');
   showToast('Message sent! ✉️');
-  loadAdminSent();
-  showMsgTab('sent');
+  loadAdminInbox();
+  showMsgTab('inbox');
   loadMessageCount();
 }
 
@@ -3045,8 +3060,8 @@ async function sendDriverMessage(){
   document.getElementById('dmsg-subject').value = '';
   document.getElementById('dmsg-body').value = '';
   showToast('Message sent to admin! ✉️');
-  loadDriverSent();
-  showDriverMsgTab('sent');
+  loadDriverInbox();
+  showDriverMsgTab('inbox');
 }
 
 async function loadDriverInbox(){

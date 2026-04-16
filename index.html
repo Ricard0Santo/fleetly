@@ -3012,8 +3012,11 @@ async function sendMessage(){
     read: false
   };
 
-  await sb.from('messages').insert(msgData);
+  const {data:inserted, error} = await sb.from('messages').insert(msgData).select();
+  if(error){ showToast('Error: ' + error.message); console.error('Message error:', error); return; }
   closeModal('modal-compose');
+  document.getElementById('msg-subject').value = '';
+  document.getElementById('msg-body').value = '';
   showToast('Message sent! ✉️');
   loadAdminInbox();
   showMsgTab('inbox');
@@ -3044,8 +3047,9 @@ async function sendDriverMessage(){
   const body = document.getElementById('dmsg-body').value.trim();
   if(!subject || !body){ showToast('Please fill in subject and message.'); return; }
 
-  await sb.from('messages').insert({
-    company_id: currentDriver?.company_id || currentProfile?.company_id,
+  const compId = currentDriver?.company_id || currentProfile?.company_id;
+  const {data:ins, error} = await sb.from('messages').insert({
+    company_id: compId,
     sender_id: currentUser.id,
     sender_name: currentDriver?.full_name || currentUser.email,
     sender_role: 'driver',
@@ -3054,8 +3058,8 @@ async function sendDriverMessage(){
     subject,
     body,
     read: false
-  });
-
+  }).select();
+  if(error){ showToast('Error: ' + error.message); console.error('Message error:', error); return; }
   closeModal('modal-driver-compose');
   document.getElementById('dmsg-subject').value = '';
   document.getElementById('dmsg-body').value = '';

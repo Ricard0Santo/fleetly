@@ -214,12 +214,15 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-section">Costs</div>
         <div class="nav-item" onclick="showPage('vehicle-costs')"><span class="nav-icon">⛽</span>Vehicle Costs</div>
         <div class="nav-item" onclick="showPage('company-costs')"><span class="nav-icon">💰</span>Company Costs</div>
+        <div class="nav-section">Communication</div>
+        <div class="nav-item" onclick="showPage('messages')"><span class="nav-icon">✉️</span>Messages <span id="msg-nav-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
       </div>
       <div id="driver-nav" style="display:none">
         <div class="nav-section">My Area</div>
         <div class="nav-item active" onclick="showPage('driver-home')"><span class="nav-icon">📋</span>My Services</div>
         <div class="nav-item" onclick="showPage('driver-add')"><span class="nav-icon">➕</span>Add Service</div>
         <div class="nav-item" onclick="showPage('driver-diesel')"><span class="nav-icon">⛽</span>My Diesel</div>
+        <div class="nav-item" onclick="showPage('driver-messages')"><span class="nav-icon">✉️</span>Messages <span id="driver-msg-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('driver-profile')"><span class="nav-icon">👤</span>My Profile</div>
       </div>
     </div>
@@ -554,6 +557,45 @@ tr:hover td{background:#f8f9fc}
             </table>
             <div class="empty" id="cc-empty" style="display:none">No company costs yet.</div>
           </div>
+        </div>
+      </div>
+
+
+      <!-- ADMIN MESSAGES -->
+      <div class="page" id="page-messages">
+        <div class="page-title">Messages</div>
+        <div class="page-sub">Internal communication with your drivers</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="pbtn on" id="msg-tab-inbox" onclick="showMsgTab('inbox')">📥 Inbox</button>
+          <button class="pbtn" id="msg-tab-sent" onclick="showMsgTab('sent')">📤 Sent</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-compose')" style="margin-left:auto">✏️ New Message</button>
+        </div>
+
+        <!-- INBOX -->
+        <div id="msg-inbox">
+          <div id="msg-inbox-list"><div class="empty">No messages yet.</div></div>
+        </div>
+
+        <!-- SENT -->
+        <div id="msg-sent" style="display:none">
+          <div id="msg-sent-list"><div class="empty">No sent messages yet.</div></div>
+        </div>
+      </div>
+
+      <!-- DRIVER MESSAGES -->
+      <div class="page" id="page-driver-messages">
+        <div class="page-title">Messages</div>
+        <div class="page-sub">Messages from your company</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="pbtn on" id="dmsg-tab-inbox" onclick="showDriverMsgTab('inbox')">📥 Inbox</button>
+          <button class="pbtn" id="dmsg-tab-sent" onclick="showDriverMsgTab('sent')">📤 Sent</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-driver-compose')" style="margin-left:auto">✏️ Message Admin</button>
+        </div>
+        <div id="dmsg-inbox">
+          <div id="dmsg-inbox-list"><div class="empty">No messages yet.</div></div>
+        </div>
+        <div id="dmsg-sent" style="display:none">
+          <div id="dmsg-sent-list"><div class="empty">No sent messages yet.</div></div>
         </div>
       </div>
 
@@ -1029,6 +1071,65 @@ tr:hover td{background:#f8f9fc}
   </div>
 </div>
 
+
+<!-- Admin Compose Modal -->
+<div class="modal-overlay" id="modal-compose">
+  <div class="modal">
+    <div class="modal-title">New Message</div>
+    <div class="form-row">
+      <div class="fg">
+        <label>To</label>
+        <select id="msg-to" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="all_drivers">📢 All Drivers</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Subject</label><input type="text" id="msg-subject" placeholder="Message subject..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Message</label>
+        <textarea id="msg-body" rows="6" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Write your message here..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-compose')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendMessage()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- Driver Compose Modal -->
+<div class="modal-overlay" id="modal-driver-compose">
+  <div class="modal">
+    <div class="modal-title">Message to Admin</div>
+    <div class="form-row">
+      <div class="fg"><label>Subject</label><input type="text" id="dmsg-subject" placeholder="Message subject..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Message</label>
+        <textarea id="dmsg-body" rows="6" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Write your message here..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-driver-compose')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendDriverMessage()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Message Modal -->
+<div class="modal-overlay" id="modal-view-message">
+  <div class="modal">
+    <div class="modal-title" id="view-msg-subject">Message</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="view-msg-meta"></div>
+    <div style="background:var(--light);border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap" id="view-msg-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-view-message')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div id="print-doc"></div>
 
@@ -1088,6 +1189,7 @@ async function initApp(user){
     setReportPeriodByName('month');
     loadNotifications();
     loadApprovals();
+    loadMessageCount();
   } else {
     document.getElementById('admin-nav').style.display = 'none';
     document.getElementById('driver-nav').style.display = 'block';
@@ -1097,6 +1199,7 @@ async function initApp(user){
     showPage("driver-home");
     populateDriverSelects();
     setTimeout(()=>setDriverPeriodByName("today"),300);
+    loadDriverMessageCount();
   }
 }
 
@@ -1971,6 +2074,8 @@ function showPage(page){
   if(page==='dashboard')loadDashboard();
   if(page==='approvals')loadApprovals();
   if(page==='driver-profile')loadDriverProfile();
+  if(page==='messages'){ populateComposeModal(); loadAdminInbox(); loadMessageCount(); }
+  if(page==='driver-messages'){ loadDriverInbox(); loadDriverMessageCount(); }
   if(page==='driver-diesel'){
     const d=getPeriodDates('month');
     driverDieselFrom=d.from;driverDieselTo=d.to;
@@ -1995,6 +2100,7 @@ function showPage(page){
 
 function openModal(id){
   document.getElementById(id).classList.add('open');
+  if(id==='modal-compose') populateComposeModal();
   if(id==='modal-service'){document.getElementById('svc-date').value=today();populateSelects();}
   if(['modal-diesel','modal-mechanic','modal-insurance','modal-inspection'].includes(id)){
     populateCostSelects();
@@ -2831,6 +2937,221 @@ async function exportVehicleCosts(){
   ws['!cols'] = [{wch:14},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
   XLSX.utils.book_append_sheet(wb, 'By Vehicle', ws);
   XLSX.writeFile(wb, 'Fleetly_VehicleCosts_'+byVehicleFrom+'_to_'+byVehicleTo+'.xlsx');
+}
+
+
+// =============================================
+// PHASE 4 — INTERNAL MESSAGING
+// =============================================
+
+function showMsgTab(tab){
+  document.getElementById('msg-inbox').style.display = tab==='inbox' ? '' : 'none';
+  document.getElementById('msg-sent').style.display = tab==='sent' ? '' : 'none';
+  document.getElementById('msg-tab-inbox').classList.toggle('on', tab==='inbox');
+  document.getElementById('msg-tab-sent').classList.toggle('on', tab==='sent');
+  if(tab==='inbox') loadAdminInbox();
+  if(tab==='sent') loadAdminSent();
+}
+
+function showDriverMsgTab(tab){
+  document.getElementById('dmsg-inbox').style.display = tab==='inbox' ? '' : 'none';
+  document.getElementById('dmsg-sent').style.display = tab==='sent' ? '' : 'none';
+  document.getElementById('dmsg-tab-inbox').classList.toggle('on', tab==='inbox');
+  document.getElementById('dmsg-tab-sent').classList.toggle('on', tab==='sent');
+  if(tab==='inbox') loadDriverInbox();
+  if(tab==='sent') loadDriverSent();
+}
+
+// ---- ADMIN MESSAGING ----
+async function openComposeModal(){
+  // Populate To dropdown with all drivers + all drivers option
+  const sel = document.getElementById('msg-to');
+  sel.innerHTML = '<option value="all_drivers">📢 All Drivers</option>';
+  allDrivers.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.profile_id || '';
+    o.textContent = '👤 ' + d.full_name;
+    if(d.profile_id) sel.appendChild(o);
+  });
+  document.getElementById('msg-subject').value = '';
+  document.getElementById('msg-body').value = '';
+  openModal('modal-compose');
+}
+
+async function sendMessage(){
+  const toVal = document.getElementById('msg-to').value;
+  const subject = document.getElementById('msg-subject').value.trim();
+  const body = document.getElementById('msg-body').value.trim();
+  if(!subject || !body){ showToast('Please fill in subject and message.'); return; }
+
+  const isAll = toVal === 'all_drivers';
+  const msgData = {
+    company_id: currentProfile.company_id,
+    sender_id: currentUser.id,
+    sender_name: currentProfile.full_name || currentUser.email,
+    sender_role: 'company_admin',
+    recipient_id: isAll ? null : toVal,
+    recipient_type: isAll ? 'all_drivers' : 'driver',
+    subject,
+    body,
+    read: false
+  };
+
+  await sb.from('messages').insert(msgData);
+  closeModal('modal-compose');
+  showToast('Message sent! ✉️');
+  loadAdminSent();
+  showMsgTab('sent');
+  loadMessageCount();
+}
+
+async function loadAdminInbox(){
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('company_id', currentProfile.company_id)
+    .eq('recipient_type', 'admin')
+    .order('created_at', {ascending: false});
+  renderMessageList('msg-inbox-list', data||[], false);
+}
+
+async function loadAdminSent(){
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('company_id', currentProfile.company_id)
+    .eq('sender_id', currentUser.id)
+    .order('created_at', {ascending: false});
+  renderMessageList('msg-sent-list', data||[], true);
+}
+
+// ---- DRIVER MESSAGING ----
+async function sendDriverMessage(){
+  const subject = document.getElementById('dmsg-subject').value.trim();
+  const body = document.getElementById('dmsg-body').value.trim();
+  if(!subject || !body){ showToast('Please fill in subject and message.'); return; }
+
+  await sb.from('messages').insert({
+    company_id: currentDriver?.company_id || currentProfile?.company_id,
+    sender_id: currentUser.id,
+    sender_name: currentDriver?.full_name || currentUser.email,
+    sender_role: 'driver',
+    recipient_id: null,
+    recipient_type: 'admin',
+    subject,
+    body,
+    read: false
+  });
+
+  closeModal('modal-driver-compose');
+  document.getElementById('dmsg-subject').value = '';
+  document.getElementById('dmsg-body').value = '';
+  showToast('Message sent to admin! ✉️');
+  loadDriverSent();
+  showDriverMsgTab('sent');
+}
+
+async function loadDriverInbox(){
+  const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('company_id', companyId)
+    .or('recipient_id.eq.' + currentUser.id + ',recipient_type.eq.all_drivers')
+    .neq('sender_id', currentUser.id)
+    .order('created_at', {ascending: false});
+  renderMessageList('dmsg-inbox-list', data||[], false);
+  // Mark all as read
+  if(data && data.length){
+    await sb.from('messages').update({read:true})
+      .eq('company_id', companyId)
+      .or('recipient_id.eq.'+currentUser.id+',recipient_type.eq.all_drivers')
+      .neq('sender_id', currentUser.id);
+    loadDriverMessageCount();
+  }
+}
+
+async function loadDriverSent(){
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('sender_id', currentUser.id)
+    .order('created_at', {ascending: false});
+  renderMessageList('dmsg-sent-list', data||[], true);
+}
+
+// ---- RENDER MESSAGES ----
+function renderMessageList(containerId, messages, isSent){
+  const el = document.getElementById(containerId);
+  if(!messages.length){ el.innerHTML = '<div class="empty">No messages yet.</div>'; return; }
+  el.innerHTML = messages.map(m => `
+    <div onclick="viewMessage('${m.id}')" style="background:${!m.read && !isSent ? '#f0fdf9' : 'var(--white)'};border:1px solid ${!m.read && !isSent ? 'var(--teal)' : 'var(--border)'};border-radius:10px;padding:14px 18px;margin-bottom:10px;cursor:pointer;transition:all 0.15s">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:${!m.read && !isSent ? '700' : '500'};color:var(--dark)">${m.subject}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;margin-left:12px">${timeAgo(m.created_at)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">
+        ${isSent ? '→ ' + (m.recipient_type==='all_drivers' ? '📢 All Drivers' : '👤 Driver') : '← ' + m.sender_name}
+      </div>
+      <div style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.body}</div>
+      ${!m.read && !isSent ? '<div style="display:inline-block;background:var(--teal);color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:2px 8px;margin-top:6px">NEW</div>' : ''}
+    </div>
+  `).join('');
+}
+
+async function viewMessage(id){
+  const {data:m} = await sb.from('messages').select('*').eq('id',id).single();
+  if(!m) return;
+  document.getElementById('view-msg-subject').textContent = m.subject;
+  document.getElementById('view-msg-meta').textContent = 'From: ' + m.sender_name + ' · ' + new Date(m.created_at).toLocaleString('pt-PT');
+  document.getElementById('view-msg-body').textContent = m.body;
+  // Mark as read
+  if(!m.read && m.recipient_id === currentUser.id || m.recipient_type === 'all_drivers'){
+    await sb.from('messages').update({read:true}).eq('id',id);
+    loadMessageCount();
+    loadDriverMessageCount();
+  }
+  openModal('modal-view-message');
+}
+
+// ---- MESSAGE COUNTS ----
+async function loadMessageCount(){
+  if(!currentProfile?.company_id) return;
+  // Admin counts unread messages from drivers
+  const {count} = await sb.from('messages')
+    .select('id', {count:'exact', head:true})
+    .eq('company_id', currentProfile.company_id)
+    .eq('recipient_type', 'admin')
+    .eq('read', false);
+  const n = count||0;
+  const badge = document.getElementById('msg-nav-badge');
+  if(badge){ badge.textContent=n; badge.style.display=n>0?'inline':'none'; }
+}
+
+async function loadDriverMessageCount(){
+  const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  if(!companyId) return;
+  const {count} = await sb.from('messages')
+    .select('id', {count:'exact', head:true})
+    .eq('company_id', companyId)
+    .or('recipient_id.eq.'+currentUser.id+',recipient_type.eq.all_drivers')
+    .neq('sender_id', currentUser.id)
+    .eq('read', false);
+  const n = count||0;
+  const badge = document.getElementById('driver-msg-badge');
+  if(badge){ badge.textContent=n; badge.style.display=n>0?'inline':'none'; }
+}
+
+
+async function populateComposeModal(){
+  if(!allDrivers || !allDrivers.length) return;
+  const sel = document.getElementById('msg-to');
+  if(!sel) return;
+  sel.innerHTML = '<option value="all_drivers">📢 All Drivers</option>';
+  allDrivers.forEach(d => {
+    if(d.profile_id){
+      const o = document.createElement('option');
+      o.value = d.profile_id;
+      o.textContent = '👤 ' + d.full_name;
+      sel.appendChild(o);
+    }
+  });
 }
 
 </script>

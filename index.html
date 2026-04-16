@@ -427,7 +427,7 @@ tr:hover td{background:#f8f9fc}
           <div class="card" style="padding:0;overflow:hidden">
             <div class="tbl-wrap">
               <table>
-                <thead><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Litres</th><th>Cost €</th><th>Mileage</th><th>Notes</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Litres</th><th>Cost €</th><th>Mileage</th><th>Status</th><th>Receipt</th><th>Notes</th><th></th></tr></thead>
                 <tbody id="diesel-body"></tbody>
               </table>
               <div class="empty" id="diesel-empty" style="display:none">No diesel records yet.</div>
@@ -965,6 +965,9 @@ tr:hover td{background:#f8f9fc}
   <div class="modal">
     <div class="modal-title">Log Diesel</div>
     <input type="hidden" id="dd-id">
+    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#92400E">
+      ⚠️ This record will be sent to your admin for approval.
+    </div>
     <div class="form-row col2">
       <div class="fg"><label>Date</label><input type="date" id="dd-date"></div>
       <div class="fg"><label>Vehicle</label><select id="dd-vehicle"><option value="">Select vehicle...</option></select></div>
@@ -977,9 +980,20 @@ tr:hover td{background:#f8f9fc}
       <div class="fg"><label>Mileage (km)</label><input type="number" id="dd-mileage" placeholder="Current km reading"></div>
       <div class="fg"><label>Notes</label><input type="text" id="dd-notes" placeholder="Optional..."></div>
     </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>📸 Receipt photo</label>
+        <input type="file" id="dd-receipt" accept="image/*,application/pdf" style="font-size:13px;padding:6px;border:1.5px solid var(--border);border-radius:7px;width:100%;background:var(--light)">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Take a photo or upload from your gallery. JPG, PNG or PDF.</div>
+      </div>
+    </div>
+    <div id="dd-receipt-preview" style="display:none;margin-top:8px">
+      <img id="dd-receipt-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border)" src="">
+    </div>
+    <div id="dd-upload-progress" style="display:none;font-size:12px;color:var(--teal);margin-top:8px;font-weight:600">⏳ Uploading receipt...</div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-driver-diesel')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDriverDiesel()">Save</button>
+      <button class="btn btn-primary" id="dd-save-btn" onclick="saveDriverDiesel()">Submit for Approval</button>
     </div>
   </div>
 </div>
@@ -2075,16 +2089,25 @@ async function loadDiesel(){
   const empty = document.getElementById('diesel-empty');
   if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
   empty.style.display='none';
-  tbody.innerHTML = rows.map(r=>`<tr>
-    <td>${r.date}</td>
-    <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
-    <td>${r.drivers?.full_name||'—'}</td>
-    <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
-    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
-    <td>${r.mileage?r.mileage+'km':'—'}</td>
-    <td>${r.notes||'—'}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteDiesel('${r.id}')">Del</button></td>
-  </tr>`).join('');
+  tbody.innerHTML = rows.map(r=>{
+    const statusBadge = r.status==='Approved' ? '<span class="badge badge-completed">Approved</span>' : r.status==='Rejected' ? '<span class="badge badge-cancelled">Rejected</span>' : '<span class="badge badge-pendingapproval">Pending</span>';
+    const receiptBtn = r.receipt_url ? `<button class="btn btn-print btn-sm" onclick="viewReceipt('${r.receipt_url}')">📸 Receipt</button>` : '—';
+    const approvalBtns = r.status==='Pending Approval' ? `
+      <button class="btn btn-approve btn-sm" onclick="approveDiesel('${r.id}')">✅</button>
+      <button class="btn btn-reject btn-sm" onclick="rejectDiesel('${r.id}')">❌</button>` : '';
+    return `<tr>
+      <td>${r.date}</td>
+      <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+      <td>${r.drivers?.full_name||'—'}</td>
+      <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
+      <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+      <td>${r.mileage?r.mileage+'km':'—'}</td>
+      <td>${statusBadge}</td>
+      <td>${receiptBtn}</td>
+      <td>${r.notes||'—'}</td>
+      <td style="display:flex;gap:4px">${approvalBtns}<button class="btn btn-danger btn-sm" onclick="deleteDiesel('${r.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
 }
 
 async function saveDiesel(){
@@ -2421,22 +2444,63 @@ async function openDriverDieselModal(){
 
 async function saveDriverDiesel(){
   const id = document.getElementById('dd-id').value;
+  const date = document.getElementById('dd-date').value;
+  if(!date){showToast('Please enter a date.');return;}
+
+  // Disable button and show progress
+  const btn = document.getElementById('dd-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  let receiptUrl = null;
+  const fileInput = document.getElementById('dd-receipt');
+  const file = fileInput.files[0];
+
+  // Upload receipt if provided
+  if(file){
+    document.getElementById('dd-upload-progress').style.display = 'block';
+    const companyId = currentDriver?.company_id || currentProfile?.company_id;
+    const filePath = companyId + '/' + currentDriver?.id + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const {data: uploadData, error: uploadError} = await sb.storage.from('receipts').upload(filePath, file);
+    document.getElementById('dd-upload-progress').style.display = 'none';
+    if(uploadError){ showToast('Receipt upload failed: ' + uploadError.message); btn.disabled=false; btn.textContent='Submit for Approval'; return; }
+    receiptUrl = filePath;
+  }
+
   const data = {
-    date: document.getElementById('dd-date').value,
+    date,
     vehicle_id: document.getElementById('dd-vehicle').value||null,
     driver_id: currentDriver?.id||null,
     litres: parseFloat(document.getElementById('dd-litres').value)||0,
     cost: parseFloat(document.getElementById('dd-cost').value)||0,
     mileage: parseInt(document.getElementById('dd-mileage').value)||null,
     notes: document.getElementById('dd-notes').value.trim(),
-    company_id: currentDriver?.company_id || currentProfile?.company_id
+    company_id: currentDriver?.company_id || currentProfile?.company_id,
+    status: 'Pending Approval',
+    receipt_url: receiptUrl
   };
-  if(!data.date){showToast('Please enter a date.');return;}
-  if(id){await sb.from('diesel_records').update(data).eq('id',id);}
-  else{await sb.from('diesel_records').insert(data);}
+
+  let insertedId = id;
+  if(id){ await sb.from('diesel_records').update(data).eq('id',id); }
+  else {
+    const {data:inserted} = await sb.from('diesel_records').insert(data).select().single();
+    insertedId = inserted?.id;
+  }
+
+  // Notify admin
+  await sb.from('notifications').insert({
+    company_id: data.company_id,
+    title: 'Diesel Record Submitted ⛽',
+    message: (currentDriver?.full_name||'Driver') + ' submitted a diesel record for ' + data.date + ' — €' + data.cost.toFixed(2) + ' / ' + data.litres.toFixed(2) + 'L. Receipt ' + (receiptUrl ? 'attached ✅' : 'not attached') + '. Needs approval.',
+    type: 'service_submitted',
+    service_id: null,
+    read: false
+  });
+
   closeModal('modal-driver-diesel');
+  btn.disabled = false; btn.textContent = 'Submit for Approval';
+  document.getElementById('dd-receipt-preview').style.display = 'none';
   loadDriverDiesel();
-  showToast('Diesel record saved! ⛽');
+  showToast('Diesel record submitted for approval! ⛽');
 }
 
 async function loadDriverDiesel(){
@@ -2461,15 +2525,20 @@ async function loadDriverDiesel(){
   const empty = document.getElementById('driver-diesel-empty');
   if(!rows.length){tbody.innerHTML='';empty.style.display='';return;}
   empty.style.display='none';
-  tbody.innerHTML = rows.map(r=>`<tr>
-    <td>${r.date}</td>
-    <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
-    <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
-    <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
-    <td>${r.mileage?r.mileage+'km':'—'}</td>
-    <td>${r.notes||'—'}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteDriverDiesel('${r.id}')">Del</button></td>
-  </tr>`).join('');
+  tbody.innerHTML = rows.map(r=>{
+    const statusBadge = r.status==='Approved' ? '<span class="badge badge-completed">Approved</span>' : r.status==='Rejected' ? '<span class="badge badge-cancelled">Rejected</span>' : '<span class="badge badge-pendingapproval">Pending</span>';
+    return `<tr>
+      <td>${r.date}</td>
+      <td><strong>${r.vehicles?.plate||'—'}</strong> ${r.vehicles?.make||''}</td>
+      <td>${parseFloat(r.litres||0).toFixed(2)}L</td>
+      <td>€${parseFloat(r.cost||0).toFixed(2)}</td>
+      <td>${r.mileage?r.mileage+'km':'—'}</td>
+      <td>${statusBadge}</td>
+      <td>${r.receipt_url?'<span style="color:var(--teal);font-weight:600">📸 Receipt</span>':'—'}</td>
+      <td>${r.notes||'—'}</td>
+      ${r.status==='Pending Approval'?`<td><button class="btn btn-danger btn-sm" onclick="deleteDriverDiesel('${r.id}')">Del</button></td>`:`<td></td>`}
+    </tr>`;
+  }).join('');
 }
 
 async function deleteDriverDiesel(id){
@@ -2478,6 +2547,68 @@ async function deleteDriverDiesel(id){
   loadDriverDiesel();
   showToast('Record deleted.');
 }
+
+
+async function approveDiesel(id){
+  await sb.from('diesel_records').update({status:'Approved'}).eq('id',id);
+  // Notify driver
+  const {data:rec} = await sb.from('diesel_records').select('driver_id,date,cost,company_id').eq('id',id).single();
+  if(rec){
+    await sb.from('notifications').insert({
+      company_id: rec.company_id,
+      user_id: rec.driver_id,
+      title: 'Diesel Record Approved ✅',
+      message: 'Your diesel record for ' + rec.date + ' (€' + parseFloat(rec.cost).toFixed(2) + ') has been approved.',
+      type: 'service_approved',
+      read: false
+    });
+  }
+  loadDiesel();
+  showToast('Diesel record approved! ✅');
+}
+
+async function rejectDiesel(id){
+  if(!confirm('Reject this diesel record?'))return;
+  await sb.from('diesel_records').update({status:'Rejected'}).eq('id',id);
+  const {data:rec} = await sb.from('diesel_records').select('driver_id,date,cost,company_id').eq('id',id).single();
+  if(rec){
+    await sb.from('notifications').insert({
+      company_id: rec.company_id,
+      user_id: rec.driver_id,
+      title: 'Diesel Record Rejected ❌',
+      message: 'Your diesel record for ' + rec.date + ' (€' + parseFloat(rec.cost).toFixed(2) + ') was rejected. Please contact your admin.',
+      type: 'service_rejected',
+      read: false
+    });
+  }
+  loadDiesel();
+  showToast('Diesel record rejected.');
+}
+
+async function viewReceipt(path){
+  try {
+    const {data} = await sb.storage.from('receipts').createSignedUrl(path, 60);
+    if(data?.signedUrl) window.open(data.signedUrl, '_blank');
+    else showToast('Could not load receipt.');
+  } catch(e){ showToast('Error loading receipt.'); }
+}
+
+// Receipt preview
+document.addEventListener('change', function(e){
+  if(e.target.id === 'dd-receipt'){
+    const file = e.target.files[0];
+    if(file && file.type.startsWith('image/')){
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        document.getElementById('dd-receipt-img').src = ev.target.result;
+        document.getElementById('dd-receipt-preview').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      document.getElementById('dd-receipt-preview').style.display = 'none';
+    }
+  }
+});
 
 </script>
 </body>

@@ -690,10 +690,9 @@ async function initApp(user){
     const { data: drv } = await sb.from('drivers').select('*').eq('profile_id', user.id).single();
     currentDriver = drv;
     if(drv){ currentProfile = Object.assign({}, profile, {company_id: drv.company_id}); }
-    loadDriverProfile();
-    showPage('driver-home');
-    setDriverPeriodByName('today');
+    showPage("driver-home");
     populateDriverSelects();
+    setTimeout(()=>setDriverPeriodByName("today"),300);
   }
 }
 

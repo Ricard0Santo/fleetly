@@ -217,6 +217,15 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-section">Communication</div>
         <div class="nav-item" onclick="showPage('messages')"><span class="nav-icon">✉️</span>Messages <span id="msg-nav-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
       </div>
+
+      <!-- SUPER ADMIN NAV -->
+      <div id="superadmin-nav" style="display:none">
+        <div class="nav-section" style="margin-top:8px">Platform</div>
+        <div class="nav-item active" onclick="showPage('sa-dashboard')"><span class="nav-icon">🌐</span>Overview</div>
+        <div class="nav-item" onclick="showPage('sa-companies')"><span class="nav-icon">🏭</span>Companies</div>
+        <div class="nav-item" onclick="showPage('sa-agencies')"><span class="nav-icon">🏢</span>Agencies</div>
+        <div class="nav-item" onclick="showPage('sa-broadcast')"><span class="nav-icon">📢</span>Broadcast</div>
+      </div>
       <div id="agency-nav" style="display:none">
         <div class="nav-section">Agency</div>
         <div class="nav-item active" onclick="showPage('agency-dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
@@ -606,6 +615,109 @@ tr:hover td{background:#f8f9fc}
         </div>
       </div>
 
+
+
+      <!-- SUPER ADMIN DASHBOARD -->
+      <div class="page" id="page-sa-dashboard">
+        <div class="page-title">🌐 Fleetly Platform</div>
+        <div class="page-sub">Super Admin — full platform overview</div>
+        <div class="metrics" id="sa-metrics">
+          <div class="metric"><div class="metric-label">Companies</div><div class="metric-value teal" id="sa-m-companies">—</div></div>
+          <div class="metric"><div class="metric-label">Agencies</div><div class="metric-value" id="sa-m-agencies">—</div></div>
+          <div class="metric"><div class="metric-label">Total Drivers</div><div class="metric-value" id="sa-m-drivers">—</div></div>
+          <div class="metric"><div class="metric-label">Total Services</div><div class="metric-value teal" id="sa-m-services">—</div></div>
+          <div class="metric"><div class="metric-label">Total Revenue</div><div class="metric-value teal" id="sa-m-revenue">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Companies on Platform</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Company</th><th>Email</th><th>Phone</th><th>RNAVT</th><th>Status</th><th>Services</th><th></th></tr></thead>
+              <tbody id="sa-companies-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Agencies on Platform</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Agency</th><th>Contact</th><th>Email</th><th>Phone</th><th>Services Sent</th><th></th></tr></thead>
+              <tbody id="sa-agencies-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPER ADMIN COMPANIES -->
+      <div class="page" id="page-sa-companies">
+        <div class="page-title">Companies</div>
+        <div class="page-sub">Manage all companies on the Fleetly platform</div>
+        <div class="toolbar">
+          <div class="result-count" id="sa-companies-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-sa-company')">+ Add Company</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Company Name</th><th>Email</th><th>Phone</th><th>Address</th><th>RNAVT</th><th>NIF</th><th>Status</th><th></th></tr></thead>
+              <tbody id="sa-all-companies-body"></tbody>
+            </table>
+            <div class="empty" id="sa-companies-empty" style="display:none">No companies yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPER ADMIN AGENCIES -->
+      <div class="page" id="page-sa-agencies">
+        <div class="page-title">Agencies</div>
+        <div class="page-sub">Manage all agencies on the Fleetly platform</div>
+        <div class="toolbar">
+          <div class="result-count" id="sa-agencies-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-sa-agency')">+ Add Agency</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Agency Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Login</th><th></th></tr></thead>
+              <tbody id="sa-all-agencies-body"></tbody>
+            </table>
+            <div class="empty" id="sa-agencies-empty" style="display:none">No agencies yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPER ADMIN BROADCAST -->
+      <div class="page" id="page-sa-broadcast">
+        <div class="page-title">Platform Broadcast</div>
+        <div class="page-sub">Send announcements to all companies and agencies</div>
+        <div class="card">
+          <div class="card-title">Send Broadcast Message</div>
+          <div class="form-row">
+            <div class="fg">
+              <label>Send to</label>
+              <select id="sa-broadcast-to" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+                <option value="all">📢 Everyone (All Companies + Agencies)</option>
+                <option value="companies">🏭 All Companies only</option>
+                <option value="agencies">🏢 All Agencies only</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="fg"><label>Subject</label><input type="text" id="sa-broadcast-subject" placeholder="Announcement subject..."></div>
+          </div>
+          <div class="form-row">
+            <div class="fg">
+              <label>Message</label>
+              <textarea id="sa-broadcast-body" rows="6" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Write your announcement..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Previous Broadcasts</div>
+          <div id="sa-broadcast-history"><div class="empty">No broadcasts sent yet.</div></div>
+        </div>
+      </div>
 
       <!-- AGENCY DASHBOARD -->
       <div class="page" id="page-agency-dashboard">
@@ -1271,6 +1383,59 @@ tr:hover td{background:#f8f9fc}
   </div>
 </div>
 
+
+<!-- SA Add Company Modal -->
+<div class="modal-overlay" id="modal-sa-company">
+  <div class="modal">
+    <div class="modal-title" id="sa-company-modal-title">Add Company</div>
+    <input type="hidden" id="sa-company-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Company name</label><input type="text" id="sa-co-name" placeholder="Company name"></div>
+      <div class="fg"><label>Email</label><input type="email" id="sa-co-email" placeholder="company@email.com"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Phone</label><input type="text" id="sa-co-phone" placeholder="+351 ..."></div>
+      <div class="fg"><label>RNAVT</label><input type="text" id="sa-co-rnavt" placeholder="RNAVT number"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>NIF</label><input type="text" id="sa-co-nif" placeholder="NIF number"></div>
+      <div class="fg"><label>Status</label>
+        <select id="sa-co-status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Address</label><input type="text" id="sa-co-address" placeholder="Full address"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sa-company')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSACompany()">Save Company</button>
+    </div>
+  </div>
+</div>
+
+<!-- SA Add Agency Modal -->
+<div class="modal-overlay" id="modal-sa-agency">
+  <div class="modal">
+    <div class="modal-title" id="sa-agency-modal-title">Add Agency</div>
+    <input type="hidden" id="sa-agency-id">
+    <div class="form-row col2">
+      <div class="fg"><label>Agency name</label><input type="text" id="sa-ag-name" placeholder="Agency name"></div>
+      <div class="fg"><label>Contact name</label><input type="text" id="sa-ag-contact" placeholder="Contact person"></div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Email</label><input type="email" id="sa-ag-email" placeholder="agency@email.com"></div>
+      <div class="fg"><label>Phone</label><input type="text" id="sa-ag-phone" placeholder="+351 ..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Notes</label><input type="text" id="sa-ag-notes" placeholder="Optional..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sa-agency')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSAAgency()">Save Agency</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div id="print-doc"></div>
 
@@ -1322,10 +1487,18 @@ async function initApp(user){
   currentProfile = profile;
   const role = profile?.role || 'driver';
   document.getElementById('topbar-user').textContent = (profile?.full_name || user.email) + ' · ' + role.replace('_',' ');
-  if(role === 'company_admin' || role === 'super_admin'){
+  if(role === 'super_admin'){
+    document.getElementById('admin-nav').style.display = 'none';
+    document.getElementById('driver-nav').style.display = 'none';
+    document.getElementById('agency-nav').style.display = 'none';
+    document.getElementById('superadmin-nav').style.display = 'block';
+    showPage('sa-dashboard');
+    loadSADashboard();
+  } else if(role === 'company_admin'){
     document.getElementById('admin-nav').style.display = 'block';
     document.getElementById('driver-nav').style.display = 'none';
     document.getElementById('agency-nav').style.display = 'none';
+    document.getElementById('superadmin-nav').style.display = 'none';
     await loadMasterData();
     await loadDashboard();
     setServicePeriodByName('month');
@@ -2244,6 +2417,10 @@ function showPage(page){
     showDriverMsgTab('inbox');
     loadDriverMessageCount(); 
   }
+  if(page==='sa-dashboard') loadSADashboard();
+  if(page==='sa-companies') loadSACompanies();
+  if(page==='sa-agencies') loadSAAgencies();
+  if(page==='sa-broadcast') loadSABroadcastHistory();
   if(page==='agency-dashboard') loadAgencyDashboard();
   if(page==='agency-services'){ populateAgencySelects(); document.getElementById('ag-svc-date').value=today(); }
   if(page==='agency-history'){ const d=getPeriodDates('month'); agencyHistoryFrom=d.from; agencyHistoryTo=d.to; loadAgencyHistory(); }
@@ -3580,6 +3757,271 @@ async function sendAgencyMessage(){
   closeModal('modal-agency-compose');
   showToast('Message sent! ✉️');
   showAgencyMsgTab('sent');
+}
+
+
+// =============================================
+// PHASE 6 — SUPER ADMIN DASHBOARD
+// =============================================
+
+async function loadSADashboard(){
+  // Load platform stats
+  const [coRes, agRes, drRes, svcRes] = await Promise.all([
+    sb.from('companies').select('id', {count:'exact', head:true}),
+    sb.from('agencies').select('id', {count:'exact', head:true}),
+    sb.from('drivers').select('id', {count:'exact', head:true}),
+    sb.from('services').select('service_price')
+  ]);
+
+  document.getElementById('sa-m-companies').textContent = coRes.count||0;
+  document.getElementById('sa-m-agencies').textContent = agRes.count||0;
+  document.getElementById('sa-m-drivers').textContent = drRes.count||0;
+  document.getElementById('sa-m-services').textContent = (svcRes.data||[]).length;
+  const totalRev = (svcRes.data||[]).reduce((s,r)=>s+parseFloat(r.service_price||0),0);
+  document.getElementById('sa-m-revenue').textContent = '€'+totalRev.toFixed(2);
+
+  // Load companies with service counts
+  const {data:companies} = await sb.from('companies').select('*').order('name');
+  const {data:allSvcs} = await sb.from('services').select('company_id');
+  const svcByCompany = {};
+  (allSvcs||[]).forEach(s=>{ svcByCompany[s.company_id]=(svcByCompany[s.company_id]||0)+1; });
+
+  const coBody = document.getElementById('sa-companies-body');
+  coBody.innerHTML = (companies||[]).map(c=>`<tr>
+    <td style="font-weight:700">${c.name}</td>
+    <td>${c.email||'—'}</td>
+    <td>${c.phone||'—'}</td>
+    <td>${c.rnavt||'—'}</td>
+    <td><span class="badge ${c.status==='Active'?'badge-active':'badge-inactive'}">${c.status||'Active'}</span></td>
+    <td>${svcByCompany[c.id]||0}</td>
+    <td><button class="btn btn-secondary btn-sm" onclick="editSACompany('${c.id}')">Edit</button></td>
+  </tr>`).join('');
+
+  // Load agencies
+  const {data:agencies} = await sb.from('agencies').select('*').order('name');
+  const {data:agSvcs} = await sb.from('services').select('agency_id');
+  const svcByAgency = {};
+  (agSvcs||[]).forEach(s=>{ if(s.agency_id) svcByAgency[s.agency_id]=(svcByAgency[s.agency_id]||0)+1; });
+
+  const agBody = document.getElementById('sa-agencies-body');
+  agBody.innerHTML = (agencies||[]).map(a=>`<tr>
+    <td style="font-weight:700">${a.name}</td>
+    <td>${a.contact_name||'—'}</td>
+    <td>${a.email||'—'}</td>
+    <td>${a.phone||'—'}</td>
+    <td>${svcByAgency[a.id]||0}</td>
+    <td><button class="btn btn-secondary btn-sm" onclick="editSAAgency('${a.id}')">Edit</button></td>
+  </tr>`).join('');
+}
+
+// ---- SA COMPANIES ----
+async function loadSACompanies(){
+  const {data} = await sb.from('companies').select('*').order('name');
+  const rows = data||[];
+  document.getElementById('sa-companies-count').textContent = rows.length + ' compan' + (rows.length===1?'y':'ies');
+  const tbody = document.getElementById('sa-all-companies-body');
+  const empty = document.getElementById('sa-companies-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(c=>`<tr>
+    <td style="font-weight:700">${c.name}</td>
+    <td>${c.email||'—'}</td>
+    <td>${c.phone||'—'}</td>
+    <td>${c.address||'—'}</td>
+    <td>${c.rnavt||'—'}</td>
+    <td>${c.nif||'—'}</td>
+    <td><span class="badge ${c.status==='Active'?'badge-active':'badge-inactive'}">${c.status||'Active'}</span></td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editSACompany('${c.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSACompany('${c.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveSACompany(){
+  const id = document.getElementById('sa-company-id').value;
+  const data = {
+    name: document.getElementById('sa-co-name').value.trim(),
+    email: document.getElementById('sa-co-email').value.trim(),
+    phone: document.getElementById('sa-co-phone').value.trim(),
+    rnavt: document.getElementById('sa-co-rnavt').value.trim(),
+    nif: document.getElementById('sa-co-nif').value.trim(),
+    status: document.getElementById('sa-co-status').value,
+    address: document.getElementById('sa-co-address').value.trim()
+  };
+  if(!data.name){ showToast('Please enter company name.'); return; }
+  if(id){ await sb.from('companies').update(data).eq('id',id); }
+  else { await sb.from('companies').insert(data); }
+  closeModal('modal-sa-company');
+  resetSACompanyForm();
+  loadSACompanies();
+  showToast(id?'Company updated!':'Company added!');
+}
+
+async function editSACompany(id){
+  const {data:c} = await sb.from('companies').select('*').eq('id',id).single();
+  if(!c) return;
+  document.getElementById('sa-company-id').value = c.id;
+  document.getElementById('sa-co-name').value = c.name||'';
+  document.getElementById('sa-co-email').value = c.email||'';
+  document.getElementById('sa-co-phone').value = c.phone||'';
+  document.getElementById('sa-co-rnavt').value = c.rnavt||'';
+  document.getElementById('sa-co-nif').value = c.nif||'';
+  document.getElementById('sa-co-status').value = c.status||'Active';
+  document.getElementById('sa-co-address').value = c.address||'';
+  document.getElementById('sa-company-modal-title').textContent = 'Edit Company';
+  openModal('modal-sa-company');
+}
+
+async function deleteSACompany(id){
+  if(!confirm('Delete this company? This cannot be undone.'))return;
+  await sb.from('companies').delete().eq('id',id);
+  loadSACompanies();
+  showToast('Company deleted.');
+}
+
+function resetSACompanyForm(){
+  ['sa-company-id','sa-co-name','sa-co-email','sa-co-phone','sa-co-rnavt','sa-co-nif','sa-co-address'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sa-co-status').value='Active';
+  document.getElementById('sa-company-modal-title').textContent='Add Company';
+}
+
+// ---- SA AGENCIES ----
+async function loadSAAgencies(){
+  const {data} = await sb.from('agencies').select('*').order('name');
+  const rows = data||[];
+  document.getElementById('sa-agencies-count').textContent = rows.length + ' agenc' + (rows.length===1?'y':'ies');
+  const tbody = document.getElementById('sa-all-agencies-body');
+  const empty = document.getElementById('sa-agencies-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(a=>`<tr>
+    <td style="font-weight:700">${a.name}</td>
+    <td>${a.contact_name||'—'}</td>
+    <td>${a.email||'—'}</td>
+    <td>${a.phone||'—'}</td>
+    <td>${a.profile_id?'<span class="badge badge-active">Has login</span>':'<span class="badge badge-inactive">No login</span>'}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editSAAgency('${a.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSAAgency('${a.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function saveSAAgency(){
+  const id = document.getElementById('sa-agency-id').value;
+  const data = {
+    name: document.getElementById('sa-ag-name').value.trim(),
+    contact_name: document.getElementById('sa-ag-contact').value.trim(),
+    email: document.getElementById('sa-ag-email').value.trim(),
+    phone: document.getElementById('sa-ag-phone').value.trim(),
+    notes: document.getElementById('sa-ag-notes').value.trim()
+  };
+  if(!data.name){ showToast('Please enter agency name.'); return; }
+  if(id){ await sb.from('agencies').update(data).eq('id',id); }
+  else { await sb.from('agencies').insert(data); }
+  closeModal('modal-sa-agency');
+  resetSAAgencyForm();
+  loadSAAgencies();
+  showToast(id?'Agency updated!':'Agency added!');
+}
+
+async function editSAAgency(id){
+  const {data:a} = await sb.from('agencies').select('*').eq('id',id).single();
+  if(!a) return;
+  document.getElementById('sa-agency-id').value = a.id;
+  document.getElementById('sa-ag-name').value = a.name||'';
+  document.getElementById('sa-ag-contact').value = a.contact_name||'';
+  document.getElementById('sa-ag-email').value = a.email||'';
+  document.getElementById('sa-ag-phone').value = a.phone||'';
+  document.getElementById('sa-ag-notes').value = a.notes||'';
+  document.getElementById('sa-agency-modal-title').textContent = 'Edit Agency';
+  openModal('modal-sa-agency');
+}
+
+async function deleteSAAgency(id){
+  if(!confirm('Delete this agency?'))return;
+  await sb.from('agencies').delete().eq('id',id);
+  loadSAAgencies();
+  showToast('Agency deleted.');
+}
+
+function resetSAAgencyForm(){
+  ['sa-agency-id','sa-ag-name','sa-ag-contact','sa-ag-email','sa-ag-phone','sa-ag-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sa-agency-modal-title').textContent='Add Agency';
+}
+
+// ---- SA BROADCAST ----
+async function sendBroadcast(){
+  const to = document.getElementById('sa-broadcast-to').value;
+  const subject = document.getElementById('sa-broadcast-subject').value.trim();
+  const body = document.getElementById('sa-broadcast-body').value.trim();
+  if(!subject || !body){ showToast('Please fill in subject and message.'); return; }
+
+  // Get all company admins
+  let recipients = [];
+  if(to === 'all' || to === 'companies'){
+    const {data:admins} = await sb.from('profiles').select('id,company_id').eq('role','company_admin');
+    (admins||[]).forEach(a => recipients.push({id:a.id, company_id:a.company_id, type:'company'}));
+  }
+  if(to === 'all' || to === 'agencies'){
+    const {data:ags} = await sb.from('agencies').select('profile_id,id').not('profile_id','is',null);
+    (ags||[]).forEach(a => recipients.push({id:a.profile_id, agency_id:a.id, type:'agency'}));
+  }
+
+  if(!recipients.length){ showToast('No recipients found.'); return; }
+
+  // Send to each recipient
+  const messages = recipients.map(r => ({
+    company_id: r.company_id || null,
+    agency_id: r.agency_id || null,
+    sender_id: currentUser.id,
+    sender_name: 'Fleetly Platform',
+    sender_role: 'super_admin',
+    recipient_id: r.id,
+    recipient_type: r.type === 'agency' ? 'agency' : 'admin',
+    subject: '📢 ' + subject,
+    body,
+    read: false
+  }));
+
+  const {error} = await sb.from('messages').insert(messages);
+  if(error){ showToast('Error: ' + error.message); return; }
+
+  document.getElementById('sa-broadcast-subject').value = '';
+  document.getElementById('sa-broadcast-body').value = '';
+  showToast('Broadcast sent to ' + recipients.length + ' recipients! 📢');
+  loadSABroadcastHistory();
+}
+
+async function loadSABroadcastHistory(){
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('sender_id', currentUser.id)
+    .eq('sender_role', 'super_admin')
+    .order('created_at', {ascending:false})
+    .limit(20);
+
+  const el = document.getElementById('sa-broadcast-history');
+  if(!data || !data.length){ el.innerHTML = '<div class="empty">No broadcasts sent yet.</div>'; return; }
+
+  // Group by subject+created_at
+  const seen = new Set();
+  const unique = data.filter(m => {
+    const key = m.subject + m.created_at;
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  el.innerHTML = unique.map(m=>`
+    <div style="background:var(--light);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:700;font-size:14px">${m.subject}</div>
+        <div style="font-size:11px;color:var(--muted)">${timeAgo(m.created_at)}</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">${m.body}</div>
+    </div>
+  `).join('');
 }
 
 </script>

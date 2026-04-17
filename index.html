@@ -217,6 +217,13 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-section">Communication</div>
         <div class="nav-item" onclick="showPage('messages')"><span class="nav-icon">✉️</span>Messages <span id="msg-nav-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
       </div>
+      <div id="agency-nav" style="display:none">
+        <div class="nav-section">Agency</div>
+        <div class="nav-item active" onclick="showPage('agency-dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
+        <div class="nav-item" onclick="showPage('agency-services')"><span class="nav-icon">🚗</span>Send Services</div>
+        <div class="nav-item" onclick="showPage('agency-history')"><span class="nav-icon">📋</span>Service History</div>
+        <div class="nav-item" onclick="showPage('agency-messages')"><span class="nav-icon">✉️</span>Messages</div>
+      </div>
       <div id="driver-nav" style="display:none">
         <div class="nav-section">My Area</div>
         <div class="nav-item active" onclick="showPage('driver-home')"><span class="nav-icon">📋</span>My Services</div>
@@ -596,6 +603,117 @@ tr:hover td{background:#f8f9fc}
         </div>
         <div id="dmsg-sent" style="display:none">
           <div id="dmsg-sent-list"><div class="empty">No sent messages yet.</div></div>
+        </div>
+      </div>
+
+
+      <!-- AGENCY DASHBOARD -->
+      <div class="page" id="page-agency-dashboard">
+        <div class="page-title">Agency Dashboard</div>
+        <div class="page-sub" id="agency-dash-sub">Welcome to Fleetly</div>
+        <div class="metrics" id="agency-metrics">
+          <div class="metric"><div class="metric-label">Total Services Sent</div><div class="metric-value teal" id="ag-m-total">—</div></div>
+          <div class="metric"><div class="metric-label">Pending</div><div class="metric-value" id="ag-m-pending">—</div></div>
+          <div class="metric"><div class="metric-label">Confirmed</div><div class="metric-value" id="ag-m-confirmed">—</div></div>
+          <div class="metric"><div class="metric-label">Completed</div><div class="metric-value" id="ag-m-completed">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Services</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Client</th><th>Company</th><th>Service</th><th>Driver</th><th>Status</th></tr></thead>
+              <tbody id="agency-recent-body"></tbody>
+            </table>
+            <div class="empty" id="agency-recent-empty" style="display:none">No services sent yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENCY SEND SERVICE -->
+      <div class="page" id="page-agency-services">
+        <div class="page-title">Send Service</div>
+        <div class="page-sub">Send a new service request to a company</div>
+        <div class="card">
+          <div class="card-title">New Service Request</div>
+          <div class="form-row col2">
+            <div class="fg"><label>Company</label><select id="ag-svc-company"><option value="">Select company...</option></select></div>
+            <div class="fg"><label>Service type</label>
+              <select id="ag-svc-type">
+                <option value="Airport Transfer">Airport Transfer</option>
+                <option value="Island Tour">Island Tour</option>
+                <option value="Private Tour">Private Tour</option>
+                <option value="Hotel Transfer">Hotel Transfer</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg"><label>Date</label><input type="date" id="ag-svc-date"></div>
+            <div class="fg"><label>Pick-up time</label><input type="time" id="ag-svc-time"></div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg"><label>Client name</label><input type="text" id="ag-svc-client" placeholder="Full name"></div>
+            <div class="fg"><label>Passengers</label><input type="number" id="ag-svc-pax" min="1" value="1"></div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg"><label>Pick-up location</label><input type="text" id="ag-svc-pickup" placeholder="Hotel / address"></div>
+            <div class="fg"><label>Drop-off location</label><input type="text" id="ag-svc-dropoff" placeholder="Airport / address"></div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg"><label>Flight number</label><input type="text" id="ag-svc-flight" placeholder="e.g. TP1234"></div>
+            <div class="fg"><label>Notes</label><input type="text" id="ag-svc-notes" placeholder="Optional..."></div>
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn btn-primary" onclick="sendAgencyService()">Send Service Request</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENCY SERVICE HISTORY -->
+      <div class="page" id="page-agency-history">
+        <div class="page-title">Service History</div>
+        <div class="page-sub">All services sent to companies</div>
+        <div class="card">
+          <div class="period-btns">
+            <button class="pbtn on" onclick="setAgencyHistoryPeriod(this,'month')">This month</button>
+            <button class="pbtn" onclick="setAgencyHistoryPeriod(this,'q')">3 months</button>
+            <button class="pbtn" onclick="setAgencyHistoryPeriod(this,'year')">This year</button>
+            <button class="pbtn" onclick="setAgencyHistoryPeriod(this,'all')">All time</button>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <select id="ag-hist-status" onchange="loadAgencyHistory()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+                <option value="">All statuses</option>
+                <option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option>
+              </select>
+            </div>
+            <div class="result-count" id="ag-hist-count"></div>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Time</th><th>Client</th><th>Company</th><th>Service</th><th>Pax</th><th>Driver</th><th>Status</th></tr></thead>
+              <tbody id="ag-history-body"></tbody>
+            </table>
+            <div class="empty" id="ag-history-empty" style="display:none">No services found.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENCY MESSAGES -->
+      <div class="page" id="page-agency-messages">
+        <div class="page-title">Messages</div>
+        <div class="page-sub">Communication with companies</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="pbtn on" id="ag-msg-tab-inbox" onclick="showAgencyMsgTab('inbox')">📥 Inbox</button>
+          <button class="pbtn" id="ag-msg-tab-sent" onclick="showAgencyMsgTab('sent')">📤 Sent</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-agency-compose')" style="margin-left:auto">✏️ New Message</button>
+        </div>
+        <div id="ag-msg-inbox">
+          <div id="ag-inbox-list"><div class="empty">No messages yet.</div></div>
+        </div>
+        <div id="ag-msg-sent" style="display:none">
+          <div id="ag-sent-list"><div class="empty">No sent messages yet.</div></div>
         </div>
       </div>
 
@@ -1130,6 +1248,29 @@ tr:hover td{background:#f8f9fc}
   </div>
 </div>
 
+
+<!-- Agency Compose Modal -->
+<div class="modal-overlay" id="modal-agency-compose">
+  <div class="modal">
+    <div class="modal-title">Message to Company</div>
+    <div class="form-row">
+      <div class="fg"><label>Company</label><select id="ag-msg-company"><option value="">Select company...</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Subject</label><input type="text" id="ag-msg-subject" placeholder="Message subject..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Message</label>
+        <textarea id="ag-msg-body" rows="5" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Write your message..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agency-compose')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendAgencyMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div id="print-doc"></div>
 
@@ -1141,6 +1282,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let currentProfile = null;
 let currentDriver = null;
+let currentAgency = null;
 let allAgencies = [];
 let allDriverVehicles = [];
 let allDrivers = [];
@@ -1183,6 +1325,7 @@ async function initApp(user){
   if(role === 'company_admin' || role === 'super_admin'){
     document.getElementById('admin-nav').style.display = 'block';
     document.getElementById('driver-nav').style.display = 'none';
+    document.getElementById('agency-nav').style.display = 'none';
     await loadMasterData();
     await loadDashboard();
     setServicePeriodByName('month');
@@ -1190,9 +1333,20 @@ async function initApp(user){
     loadNotifications();
     loadApprovals();
     loadMessageCount();
+  } else if(role === 'agency'){
+    document.getElementById('admin-nav').style.display = 'none';
+    document.getElementById('driver-nav').style.display = 'none';
+    document.getElementById('agency-nav').style.display = 'block';
+    // Load agency data
+    const { data: ag } = await sb.from('agencies').select('*').eq('profile_id', user.id).single();
+    currentAgency = ag;
+    if(ag) document.getElementById('topbar-user').textContent = ag.name + ' · Agency';
+    showPage('agency-dashboard');
+    loadAgencyDashboard();
   } else {
     document.getElementById('admin-nav').style.display = 'none';
     document.getElementById('driver-nav').style.display = 'block';
+    document.getElementById('agency-nav').style.display = 'none';
     const { data: drv } = await sb.from('drivers').select('*').eq('profile_id', user.id).single();
     currentDriver = drv;
     if(drv){ currentProfile = Object.assign({}, profile, {company_id: drv.company_id}); }
@@ -2083,6 +2237,10 @@ function showPage(page){
     showDriverMsgTab('inbox');
     loadDriverMessageCount(); 
   }
+  if(page==='agency-dashboard') loadAgencyDashboard();
+  if(page==='agency-services'){ populateAgencySelects(); document.getElementById('ag-svc-date').value=today(); }
+  if(page==='agency-history'){ const d=getPeriodDates('month'); agencyHistoryFrom=d.from; agencyHistoryTo=d.to; loadAgencyHistory(); }
+  if(page==='agency-messages'){ showAgencyMsgTab('inbox'); }
   if(page==='driver-diesel'){
     const d=getPeriodDates('month');
     driverDieselFrom=d.from;driverDieselTo=d.to;
@@ -3174,6 +3332,205 @@ async function populateComposeModal(){
       sel.appendChild(o);
     }
   });
+}
+
+
+// =============================================
+// PHASE 5 — AGENCY DASHBOARD
+// =============================================
+
+let agencyHistoryFrom = '';
+let agencyHistoryTo = '';
+let allCompanies = [];
+
+async function loadAgencyDashboard(){
+  if(!currentAgency){
+    document.getElementById('agency-dash-sub').textContent = 'No agency profile linked. Contact admin.';
+    return;
+  }
+  document.getElementById('agency-dash-sub').textContent = 'Welcome — ' + currentAgency.name;
+
+  // Load companies for selects
+  const {data:companies} = await sb.from('companies').select('*').order('name');
+  allCompanies = companies || [];
+  populateAgencySelects();
+
+  // Load metrics
+  const {data:services} = await sb.from('services').select('status').eq('agency_id', currentAgency.id);
+  const rows = services || [];
+  document.getElementById('ag-m-total').textContent = rows.length;
+  document.getElementById('ag-m-pending').textContent = rows.filter(r=>r.status==='Pending').length;
+  document.getElementById('ag-m-confirmed').textContent = rows.filter(r=>r.status==='Confirmed').length;
+  document.getElementById('ag-m-completed').textContent = rows.filter(r=>r.status==='Completed').length;
+
+  // Load recent services
+  const {data:recent} = await sb.from('services')
+    .select('*, companies:company_id(name), drivers(full_name)')
+    .eq('agency_id', currentAgency.id)
+    .order('service_date', {ascending:false})
+    .limit(10);
+
+  const tbody = document.getElementById('agency-recent-body');
+  const empty = document.getElementById('agency-recent-empty');
+  if(!recent || !recent.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = recent.map(s=>`<tr>
+    <td>${s.service_date}</td>
+    <td>${s.client_name}</td>
+    <td>${s.companies?.name||'—'}</td>
+    <td>${svcBadge(s.service_type)}</td>
+    <td>${s.drivers?.full_name||'—'}</td>
+    <td>${statusBadge(s.status)}</td>
+  </tr>`).join('');
+}
+
+function populateAgencySelects(){
+  // Company selects
+  ['ag-svc-company','ag-msg-company'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.innerHTML = '<option value="">Select company...</option>';
+    allCompanies.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      el.appendChild(o);
+    });
+  });
+}
+
+async function sendAgencyService(){
+  const companyId = document.getElementById('ag-svc-company').value;
+  const date = document.getElementById('ag-svc-date').value;
+  const client = document.getElementById('ag-svc-client').value.trim();
+  if(!companyId || !date || !client){ showToast('Please fill in company, date and client name.'); return; }
+
+  const data = {
+    service_date: date,
+    pickup_time: document.getElementById('ag-svc-time').value || null,
+    service_type: document.getElementById('ag-svc-type').value,
+    agency_id: currentAgency.id,
+    company_id: companyId,
+    client_name: client,
+    passengers: parseInt(document.getElementById('ag-svc-pax').value)||1,
+    pickup_location: document.getElementById('ag-svc-pickup').value.trim(),
+    dropoff_location: document.getElementById('ag-svc-dropoff').value.trim(),
+    flight_number: document.getElementById('ag-svc-flight').value.trim(),
+    notes: document.getElementById('ag-svc-notes').value.trim(),
+    status: 'Pending',
+    submitted_by: 'agency'
+  };
+
+  const {error} = await sb.from('services').insert(data);
+  if(error){ showToast('Error: ' + error.message); return; }
+
+  // Notify company admin
+  await sb.from('notifications').insert({
+    company_id: companyId,
+    title: 'New Service from ' + currentAgency.name + ' 📋',
+    message: 'New ' + data.service_type + ' for ' + client + ' on ' + date + '. Please assign a driver and vehicle.',
+    type: 'service_submitted',
+    read: false
+  });
+
+  // Reset form
+  ['ag-svc-client','ag-svc-pickup','ag-svc-dropoff','ag-svc-flight','ag-svc-notes'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('ag-svc-pax').value = '1';
+  document.getElementById('ag-svc-company').value = '';
+
+  showToast('Service sent to company! ✅');
+  showPage('agency-history');
+}
+
+// Agency History
+function setAgencyHistoryPeriod(btn, p){
+  document.querySelectorAll('#page-agency-history .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const d = getPeriodDates(p);
+  agencyHistoryFrom = d.from; agencyHistoryTo = d.to;
+  loadAgencyHistory();
+}
+
+async function loadAgencyHistory(){
+  if(!currentAgency) return;
+  const status = document.getElementById('ag-hist-status')?.value;
+  let q = sb.from('services')
+    .select('*, companies:company_id(name), drivers(full_name)')
+    .eq('agency_id', currentAgency.id)
+    .order('service_date', {ascending:false});
+  if(agencyHistoryFrom) q = q.gte('service_date', agencyHistoryFrom);
+  if(agencyHistoryTo) q = q.lte('service_date', agencyHistoryTo);
+  if(status) q = q.eq('status', status);
+
+  const {data} = await q;
+  const rows = data || [];
+  document.getElementById('ag-hist-count').textContent = rows.length + ' service' + (rows.length!==1?'s':'');
+
+  const tbody = document.getElementById('ag-history-body');
+  const empty = document.getElementById('ag-history-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(s=>`<tr>
+    <td>${s.service_date}</td>
+    <td>${s.pickup_time||'—'}</td>
+    <td>${s.client_name}</td>
+    <td>${s.companies?.name||'—'}</td>
+    <td>${svcBadge(s.service_type)}</td>
+    <td>${s.passengers||1}</td>
+    <td>${s.drivers?.full_name||'—'}</td>
+    <td>${statusBadge(s.status)}</td>
+  </tr>`).join('');
+}
+
+// Agency Messages
+function showAgencyMsgTab(tab){
+  document.getElementById('ag-msg-inbox').style.display = tab==='inbox' ? '' : 'none';
+  document.getElementById('ag-msg-sent').style.display = tab==='sent' ? '' : 'none';
+  document.getElementById('ag-msg-tab-inbox').classList.toggle('on', tab==='inbox');
+  document.getElementById('ag-msg-tab-sent').classList.toggle('on', tab==='sent');
+  if(tab==='inbox') loadAgencyInbox();
+  if(tab==='sent') loadAgencySent();
+}
+
+async function loadAgencyInbox(){
+  if(!currentAgency) return;
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('agency_id', currentAgency.id)
+    .neq('sender_id', currentUser.id)
+    .order('created_at', {ascending:false});
+  renderMessageList('ag-inbox-list', data||[], false);
+}
+
+async function loadAgencySent(){
+  if(!currentAgency) return;
+  const {data} = await sb.from('messages')
+    .select('*')
+    .eq('sender_id', currentUser.id)
+    .order('created_at', {ascending:false});
+  renderMessageList('ag-sent-list', data||[], true);
+}
+
+async function sendAgencyMessage(){
+  const companyId = document.getElementById('ag-msg-company').value;
+  const subject = document.getElementById('ag-msg-subject').value.trim();
+  const body = document.getElementById('ag-msg-body').value.trim();
+  if(!companyId || !subject || !body){ showToast('Please fill in all fields.'); return; }
+
+  const {error} = await sb.from('messages').insert({
+    company_id: companyId,
+    agency_id: currentAgency?.id,
+    sender_id: currentUser.id,
+    sender_name: currentAgency?.name || currentUser.email,
+    sender_role: 'agency',
+    recipient_type: 'admin',
+    subject, body, read: false
+  });
+
+  if(error){ showToast('Error: ' + error.message); return; }
+  closeModal('modal-agency-compose');
+  showToast('Message sent! ✉️');
+  showAgencyMsgTab('sent');
 }
 
 </script>

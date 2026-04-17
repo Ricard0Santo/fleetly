@@ -3301,13 +3301,16 @@ async function viewMessage(id){
   const {data:m} = await sb.from('messages').select('*').eq('id',id).single();
   if(!m) return;
   document.getElementById('view-msg-subject').textContent = m.subject;
-  document.getElementById('view-msg-meta').textContent = 'From: ' + m.sender_name + ' · ' + new Date(m.created_at).toLocaleString('pt-PT');
+  document.getElementById('view-msg-meta').textContent = 'From: ' + (m.sender_name||'Unknown') + ' · ' + new Date(m.created_at).toLocaleString('pt-PT');
   document.getElementById('view-msg-body').textContent = m.body;
-  // Mark as read
-  if(!m.read && m.recipient_id === currentUser.id || m.recipient_type === 'all_drivers'){
+  // Always mark as read when opened
+  if(!m.read){
     await sb.from('messages').update({read:true}).eq('id',id);
-    loadMessageCount();
-    loadDriverMessageCount();
+    // Reload the appropriate inbox
+    const role = currentProfile?.role;
+    if(role==='company_admin') { loadAdminInbox(); loadMessageCount(); }
+    else if(role==='driver') { loadDriverInbox(); loadDriverMessageCount(); }
+    else if(role==='agency') { loadAgencyInbox(); }
   }
   openModal('modal-view-message');
 }
@@ -3354,15 +3357,13 @@ async function populateComposeModal(){
       sel.appendChild(o);
     }
   });
-  // Add agencies
-  const {data:agencies} = await sb.from('agencies').select('*').eq('company_id', currentProfile.company_id).order('name');
-  (agencies||[]).forEach(a => {
-    if(a.profile_id){
-      const o = document.createElement('option');
-      o.value = 'agency:' + a.profile_id + ':' + a.id;
-      o.textContent = '🏢 ' + a.name;
-      sel.appendChild(o);
-    }
+  // Add agencies that have a login
+  const {data:agencies} = await sb.from('agencies').select('*').order('name');
+  (agencies||[]).filter(a=>a.profile_id).forEach(a => {
+    const o = document.createElement('option');
+    o.value = 'agency:' + a.profile_id + ':' + a.id;
+    o.textContent = '🏢 ' + a.name;
+    sel.appendChild(o);
   });
 }
 

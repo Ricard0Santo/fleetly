@@ -1338,9 +1338,15 @@ async function initApp(user){
     document.getElementById('driver-nav').style.display = 'none';
     document.getElementById('agency-nav').style.display = 'block';
     // Load agency data
-    const { data: ag } = await sb.from('agencies').select('*').eq('profile_id', user.id).single();
-    currentAgency = ag;
-    if(ag) document.getElementById('topbar-user').textContent = ag.name + ' · Agency';
+    try {
+      const { data: ag, error: agErr } = await sb.from('agencies').select('*').eq('profile_id', user.id).single();
+      if(agErr) console.error('Agency load error:', agErr);
+      currentAgency = ag;
+      if(ag) document.getElementById('topbar-user').textContent = ag.name + ' · Agency';
+    } catch(e) { console.error('Agency init error:', e); }
+    // Load companies regardless
+    const {data:companies} = await sb.from('companies').select('*').order('name');
+    allCompanies = companies || [];
     showPage('agency-dashboard');
     loadAgencyDashboard();
   } else {

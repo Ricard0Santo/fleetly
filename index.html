@@ -3240,6 +3240,7 @@ async function loadDriverInbox(){
   const {data, error} = await sb.from('messages')
     .select('*')
     .eq('company_id', companyId)
+    .eq('sender_role', 'company_admin')
     .neq('sender_id', currentUser.id)
     .order('created_at', {ascending: false});
   if(error) console.error('Driver inbox error:', error);
@@ -3248,7 +3249,7 @@ async function loadDriverInbox(){
   if(data && data.length){
     await sb.from('messages').update({read:true})
       .eq('company_id', companyId)
-      .or('recipient_id.eq.'+currentUser.id+',recipient_type.eq.all_drivers')
+      .eq('sender_role', 'company_admin')
       .neq('sender_id', currentUser.id);
     loadDriverMessageCount();
   }

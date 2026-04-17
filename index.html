@@ -3175,9 +3175,10 @@ async function sendMessage(){
     recipientId = toVal.replace('driver:', '');
     recipientType = 'driver';
   } else if(toVal.startsWith('agency:')){
-    const parts = toVal.split(':');
-    recipientId = parts[1];
-    agencyId = parts[2];
+    const agencyStr = toVal.replace('agency:', '');
+    const splitIdx = agencyStr.indexOf(':');
+    recipientId = agencyStr.substring(0, splitIdx);
+    agencyId = agencyStr.substring(splitIdx + 1);
     recipientType = 'agency';
   }
 

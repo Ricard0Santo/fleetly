@@ -222,7 +222,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item active" onclick="showPage('agency-dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
         <div class="nav-item" onclick="showPage('agency-services')"><span class="nav-icon">🚗</span>Send Services</div>
         <div class="nav-item" onclick="showPage('agency-history')"><span class="nav-icon">📋</span>Service History</div>
-        <div class="nav-item" onclick="showPage('agency-messages')"><span class="nav-icon">✉️</span>Messages</div>
+        <div class="nav-item" onclick="showPage('agency-messages')"><span class="nav-icon">✉️</span>Messages <span id="agency-msg-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
       </div>
       <div id="driver-nav" style="display:none">
         <div class="nav-section">My Area</div>
@@ -1349,6 +1349,7 @@ async function initApp(user){
     allCompanies = companies || [];
     showPage('agency-dashboard');
     loadAgencyDashboard();
+    setTimeout(()=>loadAgencyMessageCount(), 500);
   } else {
     document.getElementById('admin-nav').style.display = 'none';
     document.getElementById('driver-nav').style.display = 'block';
@@ -2246,7 +2247,7 @@ function showPage(page){
   if(page==='agency-dashboard') loadAgencyDashboard();
   if(page==='agency-services'){ populateAgencySelects(); document.getElementById('ag-svc-date').value=today(); }
   if(page==='agency-history'){ const d=getPeriodDates('month'); agencyHistoryFrom=d.from; agencyHistoryTo=d.to; loadAgencyHistory(); }
-  if(page==='agency-messages'){ showAgencyMsgTab('inbox'); }
+  if(page==='agency-messages'){ showAgencyMsgTab('inbox'); loadAgencyMessageCount(); }
   if(page==='driver-diesel'){
     const d=getPeriodDates('month');
     driverDieselFrom=d.from;driverDieselTo=d.to;
@@ -3311,12 +3312,26 @@ async function viewMessage(id){
     const role = currentProfile?.role;
     if(role==='company_admin') { loadAdminInbox(); loadMessageCount(); }
     else if(role==='driver') { loadDriverInbox(); loadDriverMessageCount(); }
-    else if(role==='agency') { loadAgencyInbox(); }
+    else if(role==='agency') { loadAgencyInbox(); loadAgencyMessageCount(); }
   }
   openModal('modal-view-message');
 }
 
 // ---- MESSAGE COUNTS ----
+async function loadAgencyMessageCount(){
+  if(!currentAgency) return;
+  const {count} = await sb.from('messages')
+    .select('id', {count:'exact', head:true})
+    .or('agency_id.eq.'+currentAgency.id+',recipient_id.eq.'+currentUser.id)
+    .neq('sender_id', currentUser.id)
+    .eq('read', false);
+  const n = count||0;
+  const badge = document.getElementById('agency-msg-badge');
+  if(badge){ badge.textContent=n; badge.style.display=n>0?'inline':'none'; }
+  // Also update bell
+  const bell = document.getElementById('notif-badge');
+  if(bell && n>0){ bell.textContent=n; bell.classList.add('show'); }
+}
 async function loadMessageCount(){
   if(!currentProfile?.company_id) return;
   // Admin counts unread messages from drivers

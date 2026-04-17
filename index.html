@@ -3164,17 +3164,32 @@ async function sendMessage(){
   const body = document.getElementById('msg-body').value.trim();
   if(!subject || !body){ showToast('Please fill in subject and message.'); return; }
 
-  const isAll = toVal === 'all_drivers';
+  let recipientId = null;
+  let recipientType = 'all_drivers';
+  let agencyId = null;
+  let msgCompanyId = currentProfile.company_id;
+
+  if(toVal === 'all_drivers'){
+    recipientType = 'all_drivers';
+  } else if(toVal.startsWith('driver:')){
+    recipientId = toVal.replace('driver:', '');
+    recipientType = 'driver';
+  } else if(toVal.startsWith('agency:')){
+    const parts = toVal.split(':');
+    recipientId = parts[1];
+    agencyId = parts[2];
+    recipientType = 'agency';
+  }
+
   const msgData = {
-    company_id: currentProfile.company_id,
+    company_id: msgCompanyId,
+    agency_id: agencyId,
     sender_id: currentUser.id,
     sender_name: currentProfile.full_name || currentUser.email,
     sender_role: 'company_admin',
-    recipient_id: isAll ? null : toVal,
-    recipient_type: isAll ? 'all_drivers' : 'driver',
-    subject,
-    body,
-    read: false
+    recipient_id: recipientId,
+    recipient_type: recipientType,
+    subject, body, read: false
   };
 
   const {data:inserted, error} = await sb.from('messages').insert(msgData).select();
@@ -3327,15 +3342,25 @@ async function loadDriverMessageCount(){
 
 
 async function populateComposeModal(){
-  if(!allDrivers || !allDrivers.length) return;
   const sel = document.getElementById('msg-to');
   if(!sel) return;
   sel.innerHTML = '<option value="all_drivers">📢 All Drivers</option>';
-  allDrivers.forEach(d => {
+  // Add individual drivers
+  (allDrivers||[]).forEach(d => {
     if(d.profile_id){
       const o = document.createElement('option');
-      o.value = d.profile_id;
+      o.value = 'driver:' + d.profile_id;
       o.textContent = '👤 ' + d.full_name;
+      sel.appendChild(o);
+    }
+  });
+  // Add agencies
+  const {data:agencies} = await sb.from('agencies').select('*').eq('company_id', currentProfile.company_id).order('name');
+  (agencies||[]).forEach(a => {
+    if(a.profile_id){
+      const o = document.createElement('option');
+      o.value = 'agency:' + a.profile_id + ':' + a.id;
+      o.textContent = '🏢 ' + a.name;
       sel.appendChild(o);
     }
   });
@@ -3503,7 +3528,7 @@ async function loadAgencyInbox(){
   if(!currentAgency) return;
   const {data} = await sb.from('messages')
     .select('*')
-    .eq('agency_id', currentAgency.id)
+    .or('agency_id.eq.'+currentAgency.id+',recipient_id.eq.'+currentUser.id)
     .neq('sender_id', currentUser.id)
     .order('created_at', {ascending:false});
   renderMessageList('ag-inbox-list', data||[], false);

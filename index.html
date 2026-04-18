@@ -1048,22 +1048,21 @@ tr:hover td{background:#f8f9fc}
 <!-- Agency Modal -->
 <div class="modal-overlay" id="modal-agency">
   <div class="modal">
-    <div class="modal-title">Add Agency</div>
-    <input type="hidden" id="ag-id">
-    <div class="form-row col2">
-      <div class="fg"><label>Agency name</label><input type="text" id="ag-name"></div>
-      <div class="fg"><label>Contact name</label><input type="text" id="ag-contact"></div>
-    </div>
-    <div class="form-row col2">
-      <div class="fg"><label>Email</label><input type="email" id="ag-email"></div>
-      <div class="fg"><label>Phone</label><input type="text" id="ag-phone"></div>
+    <div class="modal-title">Link Agency</div>
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#1E40AF">
+      ℹ️ Select an agency from the platform to link to your company. Agencies are managed by the Super Admin.
     </div>
     <div class="form-row">
-      <div class="fg"><label>Notes</label><input type="text" id="ag-notes"></div>
+      <div class="fg">
+        <label>Select Agency</label>
+        <select id="ag-link-select" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select agency...</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-agency')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAgency()">Save Agency</button>
+      <button class="btn btn-primary" onclick="linkAgency()">Link Agency</button>
     </div>
   </div>
 </div>
@@ -2186,7 +2185,7 @@ function resetVehicleForm(){
 // AGENCIES
 // =============================================
 async function loadAgencies(){
-  const{data}=await sb.from('agencies').select('*').eq('company_id',currentProfile.company_id).order('name');
+  const{data}=await sb.from('agencies').select('*').eq('company_id',currentProfile.company_id).not('profile_id','is',null).order('name');
   const rows=data||[];
   document.getElementById('agencies-count').textContent=rows.length+' agenc'+(rows.length===1?'y':'ies');
   const tbody=document.getElementById('agencies-body');
@@ -2203,17 +2202,21 @@ async function loadAgencies(){
   </tr>`).join('');
 }
 
-async function saveAgency(){
-  const id=document.getElementById('ag-id').value;
-  const data={name:document.getElementById('ag-name').value.trim(),contact_name:document.getElementById('ag-contact').value.trim(),email:document.getElementById('ag-email').value.trim(),phone:document.getElementById('ag-phone').value.trim(),notes:document.getElementById('ag-notes').value.trim(),company_id:currentProfile?.company_id};
-  if(!data.name){showToast('Please enter agency name.');return;}
-  if(id){await sb.from('agencies').update(data).eq('id',id);}
-  else{await sb.from('agencies').insert(data);}
+async function linkAgency(){
+  const agencyId = document.getElementById('ag-link-select').value;
+  if(!agencyId){ showToast('Please select an agency.'); return; }
+  // Link agency to this company by adding company_id
+  const {error} = await sb.from('agencies').update({company_id: currentProfile.company_id}).eq('id', agencyId);
+  if(error){ showToast('Error: ' + error.message); return; }
   closeModal('modal-agency');
-  resetAgencyForm();
   await loadAgencies();
   await loadMasterData();
-  showToast(id?'Agency updated!':'Agency added!');
+  showToast('Agency linked successfully! ✅');
+}
+
+async function saveAgency(){
+  // Keep for backwards compatibility
+  await linkAgency();
 }
 
 async function editAgency(id){
@@ -2451,6 +2454,7 @@ function showPage(page){
 function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-compose') populateComposeModal();
+  if(id==='modal-agency') populateAgencyLinkSelect();
   if(id==='modal-service'){document.getElementById('svc-date').value=today();populateSelects();}
   if(['modal-diesel','modal-mechanic','modal-insurance','modal-inspection'].includes(id)){
     populateCostSelects();
@@ -3577,20 +3581,18 @@ async function loadAgencyDashboard(){
   }
   document.getElementById('agency-dash-sub').textContent = 'Welcome — ' + currentAgency.name;
 
-  // Load only companies that have added this agency to their list
-  const {data:agencyLinks} = await sb.from('agencies')
-    .select('company_id, companies:company_id(id, name)')
-    .eq('id', currentAgency.id)
+  // Find companies that have linked this agency (agency has company_id set)
+  // The agency record with profile_id is the master - find all records with same name that have company_id
+  const {data:linkedAgencies} = await sb.from('agencies')
+    .select('company_id')
+    .eq('name', currentAgency.name)
     .not('company_id', 'is', null);
-  
-  // Get unique companies linked to this agency
-  const linkedCompanyIds = (agencyLinks||[]).map(a => a.company_id).filter(Boolean);
-  
+
+  const linkedCompanyIds = (linkedAgencies||[]).map(a=>a.company_id).filter(Boolean);
+
   if(linkedCompanyIds.length > 0){
     const {data:companies} = await sb.from('companies')
-      .select('*')
-      .in('id', linkedCompanyIds)
-      .order('name');
+      .select('*').in('id', linkedCompanyIds).order('name');
     allCompanies = companies || [];
   } else {
     allCompanies = [];
@@ -4038,6 +4040,25 @@ async function loadSABroadcastHistory(){
       <div style="font-size:13px;color:var(--muted)">${m.body}</div>
     </div>
   `).join('');
+}
+
+
+async function populateAgencyLinkSelect(){
+  // Load all agencies that have a profile (real agencies) and are not already linked to this company
+  const {data:all} = await sb.from('agencies').select('*').not('profile_id','is',null).order('name');
+  const {data:linked} = await sb.from('agencies').select('id').eq('company_id', currentProfile.company_id);
+  const linkedIds = (linked||[]).map(a=>a.id);
+  const available = (all||[]).filter(a=>!linkedIds.includes(a.id));
+  const sel = document.getElementById('ag-link-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Select agency...</option>';
+  available.forEach(a => {
+    const o = document.createElement('option');
+    o.value = a.id;
+    o.textContent = a.name;
+    sel.appendChild(o);
+  });
+  if(!available.length) sel.innerHTML = '<option value="">No agencies available to link</option>';
 }
 
 </script>

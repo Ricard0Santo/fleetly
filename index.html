@@ -1541,10 +1541,11 @@ async function initApp(user){
 // MASTER DATA
 // =============================================
 async function loadMasterData(){
+  const cid = currentProfile.company_id;
   const [ag, dr, ve] = await Promise.all([
-    sb.from('agencies').select('*').order('name'),
-    sb.from('drivers').select('*').order('full_name'),
-    sb.from('vehicles').select('*').order('plate')
+    sb.from('agencies').select('*').eq('company_id',cid).order('name'),
+    sb.from('drivers').select('*').eq('company_id',cid).order('full_name'),
+    sb.from('vehicles').select('*').eq('company_id',cid).order('plate')
   ]);
   allAgencies = ag.data || [];
   allDrivers = dr.data || [];

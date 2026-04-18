@@ -2220,12 +2220,14 @@ async function loadAgencies(){
 
 async function linkAgency(){
   const agencyId = document.getElementById('ag-link-select').value;
+  console.log('linkAgency called, agencyId:', agencyId, 'company_id:', currentProfile?.company_id);
   if(!agencyId){ showToast('Please select an agency.'); return; }
-  const {error} = await sb.from('agency_companies').insert({
+  const {data, error} = await sb.from('agency_companies').insert({
     agency_id: agencyId,
     company_id: currentProfile.company_id
-  });
-  if(error){ showToast('Error: ' + error.message); return; }
+  }).select();
+  console.log('insert result:', data, error);
+  if(error){ showToast('Error: ' + error.message); console.error('Link error:', error); return; }
   closeModal('modal-agency');
   await loadAgencies();
   await loadMasterData();
@@ -4057,14 +4059,20 @@ async function loadSABroadcastHistory(){
 
 
 async function populateAgencyLinkSelect(){
+  const sel = document.getElementById('ag-link-select');
+  const btn = document.querySelector('#modal-agency .btn-primary');
+  if(!sel) return;
+  // Disable button while loading
+  if(btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+  sel.innerHTML = '<option value="">Loading agencies...</option>';
+
   // Load all agencies that have a profile (real agencies)
   const {data:all} = await sb.from('agencies').select('*').not('profile_id','is',null).order('name');
   // Load already linked agencies
   const {data:linked} = await sb.from('agency_companies').select('agency_id').eq('company_id', currentProfile.company_id);
   const linkedIds = (linked||[]).map(a=>a.agency_id);
   const available = (all||[]).filter(a=>!linkedIds.includes(a.id));
-  const sel = document.getElementById('ag-link-select');
-  if(!sel) return;
+
   sel.innerHTML = '<option value="">Select agency...</option>';
   available.forEach(a => {
     const o = document.createElement('option');
@@ -4073,6 +4081,9 @@ async function populateAgencyLinkSelect(){
     sel.appendChild(o);
   });
   if(!available.length) sel.innerHTML = '<option value="">No agencies available to link</option>';
+  
+  // Re-enable button
+  if(btn) { btn.disabled = false; btn.textContent = 'Link Agency'; }
 }
 
 </script>

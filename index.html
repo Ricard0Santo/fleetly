@@ -2036,7 +2036,7 @@ async function driverSubmitService(){
 // DRIVERS
 // =============================================
 async function loadDrivers(){
-  const{data}=await sb.from('drivers').select('*').order('full_name');
+  const{data}=await sb.from('drivers').select('*').eq('company_id',currentProfile.company_id).order('full_name');
   const rows=data||[];
   document.getElementById('drivers-count').textContent=rows.length+' driver'+(rows.length!==1?'s':'');
   const tbody=document.getElementById('drivers-body');
@@ -2118,7 +2118,7 @@ function resetDriverForm(){
 // VEHICLES
 // =============================================
 async function loadVehicles(){
-  const{data}=await sb.from('vehicles').select('*').order('plate');
+  const{data}=await sb.from('vehicles').select('*').eq('company_id',currentProfile.company_id).order('plate');
   const rows=data||[];
   document.getElementById('vehicles-count').textContent=rows.length+' vehicle'+(rows.length!==1?'s':'');
   const tbody=document.getElementById('vehicles-body');
@@ -2185,7 +2185,7 @@ function resetVehicleForm(){
 // AGENCIES
 // =============================================
 async function loadAgencies(){
-  const{data}=await sb.from('agencies').select('*').order('name');
+  const{data}=await sb.from('agencies').select('*').eq('company_id',currentProfile.company_id).order('name');
   const rows=data||[];
   document.getElementById('agencies-count').textContent=rows.length+' agenc'+(rows.length===1?'y':'ies');
   const tbody=document.getElementById('agencies-body');

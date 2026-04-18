@@ -1542,11 +1542,16 @@ async function initApp(user){
 async function loadMasterData(){
   const cid = currentProfile.company_id;
   const [ag, dr, ve] = await Promise.all([
-    sb.from('agencies').select('*').eq('company_id',cid).order('name'),
+    sb.from('agency_companies').select('agency_id').eq('company_id',cid),
     sb.from('drivers').select('*').eq('company_id',cid).order('full_name'),
     sb.from('vehicles').select('*').eq('company_id',cid).order('plate')
   ]);
-  allAgencies = ag.data || [];
+  // Load full agency details for linked agencies
+  const agencyIds = (ag.data||[]).map(l=>l.agency_id);
+  if(agencyIds.length){
+    const {data:agDetails} = await sb.from('agencies').select('*').in('id',agencyIds).order('name');
+    allAgencies = agDetails || [];
+  } else { allAgencies = []; }
   allDrivers = dr.data || [];
   allVehicles = ve.data || [];
   populateSelects();
@@ -2185,7 +2190,18 @@ function resetVehicleForm(){
 // AGENCIES
 // =============================================
 async function loadAgencies(){
-  const{data}=await sb.from('agencies').select('*').eq('company_id',currentProfile.company_id).not('profile_id','is',null).order('name');
+  // Load agencies linked to this company via agency_companies table
+  const{data:links}=await sb.from('agency_companies').select('agency_id').eq('company_id',currentProfile.company_id);
+  const agencyIds=(links||[]).map(l=>l.agency_id);
+  if(!agencyIds.length){
+    const tbody=document.getElementById('agencies-body');
+    const empty=document.getElementById('agencies-empty');
+    if(tbody)tbody.innerHTML='';
+    if(empty)empty.style.display='';
+    document.getElementById('agencies-count').textContent='0 agencies';
+    return;
+  }
+  const{data}=await sb.from('agencies').select('*').in('id',agencyIds).order('name');
   const rows=data||[];
   document.getElementById('agencies-count').textContent=rows.length+' agenc'+(rows.length===1?'y':'ies');
   const tbody=document.getElementById('agencies-body');
@@ -2205,8 +2221,10 @@ async function loadAgencies(){
 async function linkAgency(){
   const agencyId = document.getElementById('ag-link-select').value;
   if(!agencyId){ showToast('Please select an agency.'); return; }
-  // Link agency to this company by adding company_id
-  const {error} = await sb.from('agencies').update({company_id: currentProfile.company_id}).eq('id', agencyId);
+  const {error} = await sb.from('agency_companies').insert({
+    agency_id: agencyId,
+    company_id: currentProfile.company_id
+  });
   if(error){ showToast('Error: ' + error.message); return; }
   closeModal('modal-agency');
   await loadAgencies();
@@ -2232,11 +2250,11 @@ async function editAgency(id){
 }
 
 async function deleteAgency(id){
-  if(!confirm('Delete this agency?'))return;
-  await sb.from('agencies').delete().eq('id',id);
+  if(!confirm('Unlink this agency from your company?'))return;
+  await sb.from('agency_companies').delete().eq('agency_id',id).eq('company_id',currentProfile.company_id);
   await loadAgencies();
   await loadMasterData();
-  showToast('Agency deleted.');
+  showToast('Agency unlinked.');
 }
 
 function resetAgencyForm(){
@@ -3581,15 +3599,10 @@ async function loadAgencyDashboard(){
   }
   document.getElementById('agency-dash-sub').textContent = 'Welcome — ' + currentAgency.name;
 
-  // Find companies that have linked this agency (agency has company_id set)
-  // The agency record with profile_id is the master - find all records with same name that have company_id
-  const {data:linkedAgencies} = await sb.from('agencies')
-    .select('company_id')
-    .eq('name', currentAgency.name)
-    .not('company_id', 'is', null);
-
-  const linkedCompanyIds = (linkedAgencies||[]).map(a=>a.company_id).filter(Boolean);
-
+  // Find companies that have linked this agency via agency_companies table
+  const {data:links} = await sb.from('agency_companies')
+    .select('company_id').eq('agency_id', currentAgency.id);
+  const linkedCompanyIds = (links||[]).map(l=>l.company_id).filter(Boolean);
   if(linkedCompanyIds.length > 0){
     const {data:companies} = await sb.from('companies')
       .select('*').in('id', linkedCompanyIds).order('name');
@@ -4044,10 +4057,11 @@ async function loadSABroadcastHistory(){
 
 
 async function populateAgencyLinkSelect(){
-  // Load all agencies that have a profile (real agencies) and are not already linked to this company
+  // Load all agencies that have a profile (real agencies)
   const {data:all} = await sb.from('agencies').select('*').not('profile_id','is',null).order('name');
-  const {data:linked} = await sb.from('agencies').select('id').eq('company_id', currentProfile.company_id);
-  const linkedIds = (linked||[]).map(a=>a.id);
+  // Load already linked agencies
+  const {data:linked} = await sb.from('agency_companies').select('agency_id').eq('company_id', currentProfile.company_id);
+  const linkedIds = (linked||[]).map(a=>a.agency_id);
   const available = (all||[]).filter(a=>!linkedIds.includes(a.id));
   const sel = document.getElementById('ag-link-select');
   if(!sel) return;

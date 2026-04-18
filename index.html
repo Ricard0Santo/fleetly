@@ -1667,7 +1667,7 @@ async function loadServices(){
   const ss=document.getElementById('f-status')?.value;
   const from=document.getElementById('f-from')?.value;
   const to=document.getElementById('f-to')?.value;
-  let q=sb.from('services').select('*,agencies(name),drivers(full_name),vehicles(plate)').order('service_date',{ascending:false}).order('pickup_time',{ascending:false});
+  let q=sb.from('services').select('*,agencies(name),drivers(full_name),vehicles(plate)').eq('company_id',currentProfile.company_id).order('service_date',{ascending:false}).order('pickup_time',{ascending:false});
   if(from) q=q.gte('service_date',from);
   if(to) q=q.lte('service_date',to);
   if(ag) q=q.eq('agency_id',ag);
@@ -1776,7 +1776,7 @@ function resetServiceForm(){
 // APPROVALS
 // =============================================
 async function loadApprovals(){
-  const{data}=await sb.from('services').select('*,agencies(name),drivers(full_name),vehicles(plate)').eq('status','Pending Approval').order('created_at',{ascending:false});
+  const{data}=await sb.from('services').select('*,agencies(name),drivers(full_name),vehicles(plate)').eq('company_id',currentProfile.company_id).eq('status','Pending Approval').order('created_at',{ascending:false});
   const rows=data||[];
   const badge=document.getElementById('approval-count-badge');
   if(rows.length>0){badge.textContent=rows.length;badge.style.display='inline';}
@@ -3577,9 +3577,24 @@ async function loadAgencyDashboard(){
   }
   document.getElementById('agency-dash-sub').textContent = 'Welcome — ' + currentAgency.name;
 
-  // Load companies for selects
-  const {data:companies} = await sb.from('companies').select('*').order('name');
-  allCompanies = companies || [];
+  // Load only companies that have added this agency to their list
+  const {data:agencyLinks} = await sb.from('agencies')
+    .select('company_id, companies:company_id(id, name)')
+    .eq('id', currentAgency.id)
+    .not('company_id', 'is', null);
+  
+  // Get unique companies linked to this agency
+  const linkedCompanyIds = (agencyLinks||[]).map(a => a.company_id).filter(Boolean);
+  
+  if(linkedCompanyIds.length > 0){
+    const {data:companies} = await sb.from('companies')
+      .select('*')
+      .in('id', linkedCompanyIds)
+      .order('name');
+    allCompanies = companies || [];
+  } else {
+    allCompanies = [];
+  }
   populateAgencySelects();
 
   // Load metrics

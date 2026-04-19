@@ -3456,19 +3456,20 @@ async function sendDriverMessage(){
 
 async function loadDriverInbox(){
   const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  // Driver sees messages sent directly to them OR broadcast to all drivers
   const {data, error} = await sb.from('messages')
     .select('*')
     .eq('company_id', companyId)
-    .eq('sender_role', 'company_admin')
+    .or('recipient_id.eq.'+currentUser.id+',recipient_type.eq.all_drivers')
     .neq('sender_id', currentUser.id)
     .order('created_at', {ascending: false});
   if(error) console.error('Driver inbox error:', error);
   renderMessageList('dmsg-inbox-list', data||[], false);
-  // Mark all as read
+  // Mark as read
   if(data && data.length){
     await sb.from('messages').update({read:true})
       .eq('company_id', companyId)
-      .eq('sender_role', 'company_admin')
+      .or('recipient_id.eq.'+currentUser.id+',recipient_type.eq.all_drivers')
       .neq('sender_id', currentUser.id);
     loadDriverMessageCount();
   }

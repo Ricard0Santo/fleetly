@@ -283,6 +283,10 @@ tr:hover td{background:#f8f9fc}
                 <button class="pbtn" onclick="setServicePeriod(this,'q')">3 months</button>
                 <button class="pbtn" onclick="setServicePeriod(this,'year')">This year</button>
                 <button class="pbtn" onclick="setServicePeriod(this,'all')">All time</button>
+                <span style="position:relative;display:inline-block">
+                  <button class="pbtn" onclick="document.getElementById('admin-cal-picker').showPicker?document.getElementById('admin-cal-picker').showPicker():document.getElementById('admin-cal-picker').click()" style="padding:6px 10px">📅 Pick date</button>
+                  <input type="date" id="admin-cal-picker" onchange="pickAdminDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;top:0;left:0;pointer-events:none">
+                </span>
               </div>
             </div>
             <div class="toolbar-right">
@@ -842,6 +846,10 @@ tr:hover td{background:#f8f9fc}
           <button class="pbtn" onclick="setDriverPeriod(this,'tomorrow')">Tomorrow</button>
           <button class="pbtn" onclick="setDriverPeriod(this,'week')">This week</button>
           <button class="pbtn on" onclick="setDriverPeriod(this,'month')">This month</button>
+          <span style="position:relative;display:inline-block">
+            <button class="pbtn" onclick="document.getElementById('driver-cal-picker').showPicker?document.getElementById('driver-cal-picker').showPicker():document.getElementById('driver-cal-picker').click()" style="padding:6px 10px">📅 Pick date</button>
+            <input type="date" id="driver-cal-picker" onchange="pickDriverDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;top:0;left:0;pointer-events:none">
+          </span>
         </div>
         <div id="driver-services-list"><div class="empty">No services found.</div></div>
       </div>
@@ -4221,6 +4229,25 @@ function groupByDate(rows){
     groups[d].push(r);
   });
   return groups;
+}
+
+
+function pickAdminDate(date){
+  if(!date) return;
+  // Remove 'on' from all period buttons
+  document.querySelectorAll('#page-services .pbtn').forEach(b=>b.classList.remove('on'));
+  // Set date filter directly
+  document.getElementById('f-from').value = date;
+  document.getElementById('f-to').value = date;
+  loadServices();
+}
+
+function pickDriverDate(date){
+  if(!date) return;
+  // Remove 'on' from all period buttons
+  document.querySelectorAll('#page-driver-home .pbtn').forEach(b=>b.classList.remove('on'));
+  // Load services for that specific date
+  loadDriverServices(date, date);
 }
 
 </script>

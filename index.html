@@ -1643,7 +1643,11 @@ async function loadDashboard(){
 // =============================================
 function today(){ return new Date().toISOString().split('T')[0]; }
 function getPeriodDates(p){
-  const now=new Date(); let from,to=today();
+  const now=new Date();
+  // Set 'to' 3 months in the future to include upcoming/future services
+  const futureDate=new Date(now);
+  futureDate.setMonth(futureDate.getMonth()+3);
+  let from, to=futureDate.toISOString().split('T')[0];
   if(p==='week'){const d=new Date(now);d.setDate(d.getDate()-d.getDay()+1);from=d.toISOString().split('T')[0];}
   else if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];}
   else if(p==='q'){const d=new Date(now);d.setMonth(d.getMonth()-3);from=d.toISOString().split('T')[0];}

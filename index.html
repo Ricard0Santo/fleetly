@@ -2044,7 +2044,10 @@ async function confirmDriverAction(){
   });
   closeModal('modal-driver-notes');
   showToast(`Service marked as ${newStatus}!`);
-  setDriverPeriodByName('today');
+  // Reload current period, don't force 'today'
+  const activeBtn = document.querySelector('#page-driver-home .pbtn.on');
+  if(activeBtn) activeBtn.click();
+  else setDriverPeriodByName('month');
 }
 
 async function driverSubmitService(){
@@ -2522,7 +2525,13 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-compose') populateComposeModal();
   if(id==='modal-agency') populateAgencyLinkSelect();
-  if(id==='modal-service'){document.getElementById('svc-date').value=today();populateSelects();}
+  if(id==='modal-service'){
+    // Only reset date for new services, not edits
+    if(!document.getElementById('svc-id')?.value){
+      document.getElementById('svc-date').value=today();
+    }
+    populateSelects();
+  }
   if(['modal-diesel','modal-mechanic','modal-insurance','modal-inspection'].includes(id)){
     populateCostSelects();
     const dateEl = document.getElementById(id.replace('modal-','').split('-')[0]+'-date');

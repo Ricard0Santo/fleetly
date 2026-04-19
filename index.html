@@ -834,9 +834,9 @@ tr:hover td{background:#f8f9fc}
         <div class="page-title">My Services</div>
         <div class="page-sub">Your assigned services</div>
         <div class="period-btns">
-          <button class="pbtn on" onclick="setDriverPeriod(this,'today')">Today</button>
+          <button class="pbtn" onclick="setDriverPeriod(this,'today')">Today</button>
           <button class="pbtn" onclick="setDriverPeriod(this,'week')">This week</button>
-          <button class="pbtn" onclick="setDriverPeriod(this,'month')">This month</button>
+          <button class="pbtn on" onclick="setDriverPeriod(this,'month')">This month</button>
         </div>
         <div id="driver-services-list"><div class="empty">No services found.</div></div>
       </div>
@@ -1531,7 +1531,7 @@ async function initApp(user){
     if(drv){ currentProfile = Object.assign({}, profile, {company_id: drv.company_id}); }
     showPage("driver-home");
     populateDriverSelects();
-    setTimeout(()=>setDriverPeriodByName("today"),300);
+    setTimeout(()=>setDriverPeriodByName("month"),300);
     loadDriverMessageCount();
   }
 }
@@ -1582,12 +1582,15 @@ async function populateDriverSelects(){
   const companyId = currentDriver?.company_id || currentProfile?.company_id;
   if(!companyId) return;
   try {
-    const [agRes, veRes] = await Promise.all([
-      sb.from('agencies').select('*').eq('company_id', companyId).order('name'),
-      sb.from('vehicles').select('*').eq('company_id', companyId).order('plate')
-    ]);
-    const agencies = agRes.data || [];
-    const vehicles = veRes.data || [];
+    // Load agencies via agency_companies table
+    const {data:agLinks} = await sb.from('agency_companies').select('agency_id').eq('company_id', companyId);
+    const agencyIds = (agLinks||[]).map(l=>l.agency_id);
+    let agencies = [];
+    if(agencyIds.length){
+      const {data:agData} = await sb.from('agencies').select('*').in('id', agencyIds).order('name');
+      agencies = agData || [];
+    }
+    const {data:vehicles} = await sb.from('vehicles').select('*').eq('company_id', companyId).order('plate');
     // Populate agency selects
     ['da-agency','dsvc-agency'].forEach(id => {
       const el = document.getElementById(id); if(!el) return;
@@ -1893,7 +1896,7 @@ async function loadDriverServices(from,to){
     document.getElementById('driver-services-list').innerHTML='<div class="empty">No driver profile linked. Contact your admin.</div>';
     return;
   }
-  let q=sb.from('services').select('*,agencies(name),vehicles(plate)').eq('driver_id',currentDriver.id).order('service_date',{ascending:false});
+  let q=sb.from('services').select('*,agencies(name),vehicles(plate)').eq('driver_id',currentDriver.id).order('service_date',{ascending:false}).order('pickup_time',{ascending:false});
   if(from) q=q.gte('service_date',from);
   if(to) q=q.lte('service_date',to);
   const{data}=await q;

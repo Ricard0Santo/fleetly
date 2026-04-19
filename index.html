@@ -1810,7 +1810,24 @@ async function loadApprovals(){
         <div class="service-detail-item"><div class="service-detail-label">Drop-off</div><div class="service-detail-value">${s.dropoff_location||'—'}</div></div>
         <div class="service-detail-item"><div class="service-detail-label">Driver</div><div class="service-detail-value">${s.drivers?.full_name||'—'}</div></div>
         <div class="service-detail-item"><div class="service-detail-label">Vehicle</div><div class="service-detail-value">${s.vehicles?.plate||'—'}</div></div>
+        ${s.passengers?`<div class="service-detail-item"><div class="service-detail-label">Passengers</div><div class="service-detail-value">${s.passengers}</div></div>`:''}
+        ${s.flight_number?`<div class="service-detail-item"><div class="service-detail-label">Flight</div><div class="service-detail-value">${s.flight_number}</div></div>`:''}
         ${s.notes?`<div class="service-detail-item" style="grid-column:span 2"><div class="service-detail-label">Notes</div><div class="service-detail-value">${s.notes}</div></div>`:''}
+      </div>
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 14px;margin-top:12px">
+        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:10px">💰 Set pricing before approving:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:#166534;font-weight:600;display:block;margin-bottom:4px">SERVICE PRICE (€)</label>
+            <input type="number" id="approve-price-${s.id}" min="0" step="0.01" placeholder="0.00" value="${s.service_price||''}"
+              style="width:100%;padding:7px 10px;border:1.5px solid #86EFAC;border-radius:6px;font-size:13px;font-family:Arial,sans-serif">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#166534;font-weight:600;display:block;margin-bottom:4px">DRIVER COST (€)</label>
+            <input type="number" id="approve-driver-${s.id}" min="0" step="0.01" placeholder="0.00" value="${s.driver_cost||''}"
+              style="width:100%;padding:7px 10px;border:1.5px solid #86EFAC;border-radius:6px;font-size:13px;font-family:Arial,sans-serif">
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn btn-success btn-sm" onclick="approveService('${s.id}')">✅ Approve</button>
@@ -1821,8 +1838,15 @@ async function loadApprovals(){
 }
 
 async function approveService(id){
-  await sb.from('services').update({status:'Confirmed',approved:true}).eq('id',id);
-  await createNotification(id,'service_approved','Service Approved','Your submitted service has been approved by the admin.');
+  const price = parseFloat(document.getElementById('approve-price-'+id)?.value)||0;
+  const driverCost = parseFloat(document.getElementById('approve-driver-'+id)?.value)||0;
+  await sb.from('services').update({
+    status:'Confirmed',
+    approved:true,
+    service_price: price,
+    driver_cost: driverCost
+  }).eq('id',id);
+  await createNotification(id,'service_approved','Service Approved','Your submitted service has been approved. Price: €'+price.toFixed(2));
   showToast('Service approved! ✅');
   await loadApprovals();
   await loadServices();

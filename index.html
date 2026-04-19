@@ -1838,7 +1838,7 @@ async function createNotification(serviceId, type, title, message){
 }
 
 async function loadNotifications(){
-  const{data}=await sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(20);
+  const{data}=await sb.from('notifications').select('*').eq('company_id',currentProfile.company_id).order('created_at',{ascending:false}).limit(20);
   const rows=data||[];
   const unread=rows.filter(n=>!n.read).length;
   const badge=document.getElementById('notif-count');
@@ -1861,7 +1861,7 @@ async function markRead(id){
 }
 
 async function markAllRead(){
-  await sb.from('notifications').update({read:true}).eq('read',false);
+  await sb.from('notifications').update({read:true}).eq('company_id',currentProfile.company_id).eq('read',false);
   loadNotifications();
   toggleNotif();
 }

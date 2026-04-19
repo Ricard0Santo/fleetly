@@ -1929,10 +1929,8 @@ function setDriverPeriod(btn,p){
 }
 
 async function setDriverPeriodByName(p){
-  let from,to=today();
-  if(p==='today'){from=today();}
-  else{const d=getPeriodDates(p);from=d.from;}
-  await loadDriverServices(from,to);
+  const d = getPeriodDates(p);
+  await loadDriverServices(d.from, d.to);
 }
 
 async function loadDriverServices(from,to){

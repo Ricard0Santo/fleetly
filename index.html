@@ -4549,7 +4549,7 @@ async function autoFillPrice(){
     .single();
   if(data){
     const priceEl = document.getElementById('svc-price');
-    const driverEl = document.getElementById('svc-driver-cost');
+    const driverEl = document.getElementById('svc-drcost');
     if(priceEl) priceEl.value = data.service_price;
     if(driverEl) driverEl.value = data.driver_cost;
     showToast('💲 Price auto-filled!');

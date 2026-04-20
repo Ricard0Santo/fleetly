@@ -775,8 +775,8 @@ tr:hover td{background:#f8f9fc}
             <div class="fg"><label>Passengers</label><input type="number" id="ag-svc-pax" min="1" value="1"></div>
           </div>
           <div class="form-row col2">
-            <div class="fg"><label>Pick-up location</label><input type="text" id="ag-svc-pickup" placeholder="Hotel / address"></div>
-            <div class="fg"><label>Drop-off location</label><input type="text" id="ag-svc-dropoff" placeholder="Airport / address"></div>
+            <div class="fg"><label>Pick-up location</label><input type="text" id="ag-svc-pickup" list="locations-list" placeholder="Select or type..."></div>
+            <div class="fg"><label>Drop-off location</label><input type="text" id="ag-svc-dropoff" list="locations-list" placeholder="Select or type..."></div>
           </div>
           <div class="form-row col2">
             <div class="fg"><label>Flight number</label><input type="text" id="ag-svc-flight" placeholder="e.g. TP1234"></div>
@@ -881,8 +881,8 @@ tr:hover td{background:#f8f9fc}
             <div class="fg"><label>Passengers</label><input type="number" id="da-pax" min="1" value="1"></div>
           </div>
           <div class="form-row col2">
-            <div class="fg"><label>Pick-up location</label><input type="text" id="da-pickup" placeholder="Hotel / address"></div>
-            <div class="fg"><label>Drop-off location</label><input type="text" id="da-dropoff" placeholder="Airport / address"></div>
+            <div class="fg"><label>Pick-up location</label><input type="text" id="da-pickup" list="locations-list" placeholder="Select or type..."></div>
+            <div class="fg"><label>Drop-off location</label><input type="text" id="da-dropoff" list="locations-list" placeholder="Select or type..."></div>
           </div>
           <div class="form-row col2">
             <div class="fg"><label>Flight number</label><input type="text" id="da-flight" placeholder="e.g. TP1234"></div>
@@ -962,8 +962,8 @@ tr:hover td{background:#f8f9fc}
       <div class="fg"><label>Passengers</label><input type="number" id="svc-pax" min="1" value="1"></div>
     </div>
     <div class="form-row col2">
-      <div class="fg"><label>Pick-up location</label><input type="text" id="svc-pickup"></div>
-      <div class="fg"><label>Drop-off location</label><input type="text" id="svc-dropoff"></div>
+      <div class="fg"><label>Pick-up location</label><input type="text" id="svc-pickup" list="locations-list" placeholder="Select or type..."></div>
+      <div class="fg"><label>Drop-off location</label><input type="text" id="svc-dropoff" list="locations-list" placeholder="Select or type..."></div>
     </div>
     <div class="form-row col2">
       <div class="fg"><label>Flight number</label><input type="text" id="svc-flight"></div>
@@ -4251,5 +4251,27 @@ function pickDriverDate(date){
 }
 
 </script>
+
+<datalist id="locations-list">
+  <option value="Airport (Arrivals)">
+  <option value="Airport (Departures)">
+  <option value="Calheta">
+  <option value="Câmara de Lobos">
+  <option value="Funchal">
+  <option value="Machico">
+  <option value="Ponta do Sol">
+  <option value="Porto Moniz">
+  <option value="Porto Santo">
+  <option value="Ribeira Brava">
+  <option value="Santa Cruz">
+  <option value="Santana">
+  <option value="São Vicente">
+  <option value="Hotel Savoy">
+  <option value="Hotel Pestana">
+  <option value="Hotel Reid's Palace">
+  <option value="Hotel The Vine">
+  <option value="Hotel Cliff Bay">
+</datalist>
+
 </body>
 </html>

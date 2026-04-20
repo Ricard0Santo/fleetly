@@ -211,6 +211,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item" onclick="showPage('drivers')"><span class="nav-icon">👤</span>Drivers</div>
         <div class="nav-item" onclick="showPage('vehicles')"><span class="nav-icon">🚙</span>Vehicles</div>
         <div class="nav-item" onclick="showPage('agencies')"><span class="nav-icon">🏢</span>Agencies</div>
+        <div class="nav-item" onclick="showPage('price-rules')"><span class="nav-icon">💲</span>Price Rules</div>
         <div class="nav-section">Costs</div>
         <div class="nav-item" onclick="showPage('vehicle-costs')"><span class="nav-icon">⛽</span>Vehicle Costs</div>
         <div class="nav-item" onclick="showPage('company-costs')"><span class="nav-icon">💰</span>Company Costs</div>
@@ -725,6 +726,33 @@ tr:hover td{background:#f8f9fc}
         </div>
       </div>
 
+
+      <!-- PRICE RULES -->
+      <div class="page" id="page-price-rules">
+        <div class="page-title">💲 Price Rules</div>
+        <div class="page-sub">Set prices per agency and location — auto-fills when adding services</div>
+        <div class="toolbar">
+          <div class="result-count" id="price-rules-count"></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-price-rule')">+ Add Price Rule</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Agency</th>
+                <th>Pick-up</th>
+                <th>Drop-off</th>
+                <th>Service Price €</th>
+                <th>Driver Cost €</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="price-rules-body"></tbody>
+            </table>
+            <div class="empty" id="price-rules-empty" style="display:none">No price rules yet. Add your first rule!</div>
+          </div>
+        </div>
+      </div>
+
       <!-- AGENCY DASHBOARD -->
       <div class="page" id="page-agency-dashboard">
         <div class="page-title">Agency Dashboard</div>
@@ -955,7 +983,7 @@ tr:hover td{background:#f8f9fc}
           <option value="Day Service">Day Service</option>
         </select>
       </div>
-      <div class="fg"><label>Agency</label><select id="svc-agency"><option value="">Select agency...</option></select></div>
+      <div class="fg"><label>Agency</label><select id="svc-agency" onchange="autoFillPrice()"><option value="">Select agency...</option></select></div>
     </div>
     <div class="form-row col2">
       <div class="fg"><label>Client name</label><input type="text" id="svc-client" placeholder="Full name"></div>
@@ -1448,6 +1476,71 @@ tr:hover td{background:#f8f9fc}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-sa-agency')">Cancel</button>
       <button class="btn btn-primary" onclick="saveSAAgency()">Save Agency</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Price Rule Modal -->
+<div class="modal-overlay" id="modal-price-rule">
+  <div class="modal">
+    <div class="modal-title" id="price-rule-modal-title">Add Price Rule</div>
+    <input type="hidden" id="pr-id">
+    <div class="form-row">
+      <div class="fg">
+        <label>Agency</label>
+        <select id="pr-agency" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select agency...</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg">
+        <label>Pick-up location</label>
+        <select id="pr-pickup" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select location...</option>
+              <option value="Airport (Arrivals)">Airport (Arrivals)</option>
+              <option value="Airport (Departures)">Airport (Departures)</option>
+              <option value="Calheta">Calheta</option>
+              <option value="Câmara de Lobos">Câmara de Lobos</option>
+              <option value="Funchal">Funchal</option>
+              <option value="Machico">Machico</option>
+              <option value="Ponta do Sol">Ponta do Sol</option>
+              <option value="Porto Moniz">Porto Moniz</option>
+              <option value="Porto Santo">Porto Santo</option>
+              <option value="Ribeira Brava">Ribeira Brava</option>
+              <option value="Santa Cruz">Santa Cruz</option>
+              <option value="Santana">Santana</option>
+              <option value="São Vicente">São Vicente</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Drop-off location</label>
+        <select id="pr-dropoff" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select location...</option>
+              <option value="Airport (Arrivals)">Airport (Arrivals)</option>
+              <option value="Airport (Departures)">Airport (Departures)</option>
+              <option value="Calheta">Calheta</option>
+              <option value="Câmara de Lobos">Câmara de Lobos</option>
+              <option value="Funchal">Funchal</option>
+              <option value="Machico">Machico</option>
+              <option value="Ponta do Sol">Ponta do Sol</option>
+              <option value="Porto Moniz">Porto Moniz</option>
+              <option value="Porto Santo">Porto Santo</option>
+              <option value="Ribeira Brava">Ribeira Brava</option>
+              <option value="Santa Cruz">Santa Cruz</option>
+              <option value="Santana">Santana</option>
+              <option value="São Vicente">São Vicente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row col2">
+      <div class="fg"><label>Service Price (€)</label><input type="number" id="pr-price" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label>Driver Cost (€)</label><input type="number" id="pr-driver" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-price-rule')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePriceRule()">Save Rule</button>
     </div>
   </div>
 </div>
@@ -2556,6 +2649,7 @@ function showPage(page){
     showDriverMsgTab('inbox');
     loadDriverMessageCount(); 
   }
+  if(page==='price-rules'){ loadPriceRules(); }
   if(page==='sa-dashboard') loadSADashboard();
   if(page==='sa-companies') loadSACompanies();
   if(page==='sa-agencies') loadSAAgencies();
@@ -2590,6 +2684,7 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-compose') populateComposeModal();
   if(id==='modal-agency') populateAgencyLinkSelect();
+  if(id==='modal-price-rule') openPriceRuleModal();
   if(id==='modal-service'){
     // Only reset date for new services, not edits
     if(!document.getElementById('svc-id')?.value){

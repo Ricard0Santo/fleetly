@@ -990,8 +990,45 @@ tr:hover td{background:#f8f9fc}
       <div class="fg"><label>Passengers</label><input type="number" id="svc-pax" min="1" value="1"></div>
     </div>
     <div class="form-row col2">
-      <div class="fg"><label>Pick-up location</label><input type="text" id="svc-pickup" list="locations-list" placeholder="Select or type..."></div>
-      <div class="fg"><label>Drop-off location</label><input type="text" id="svc-dropoff" list="locations-list" placeholder="Select or type..."></div>
+      <div class="fg"><label>Pick-up location</label>
+        <select id="svc-pickup" onchange="autoFillPrice()" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select location...</option>
+          <option value="Airport (Arrivals)">Airport (Arrivals)</option>
+          <option value="Airport (Departures)">Airport (Departures)</option>
+          <option value="Calheta">Calheta</option>
+          <option value="Câmara de Lobos">Câmara de Lobos</option>
+          <option value="Funchal">Funchal</option>
+          <option value="Machico">Machico</option>
+          <option value="Ponta do Sol">Ponta do Sol</option>
+          <option value="Porto Moniz">Porto Moniz</option>
+          <option value="Porto Santo">Porto Santo</option>
+          <option value="Ribeira Brava">Ribeira Brava</option>
+          <option value="Santa Cruz">Santa Cruz</option>
+          <option value="Santana">Santana</option>
+          <option value="São Vicente">São Vicente</option>
+        </select>
+      </div>
+      <div class="fg"><label>Drop-off location</label>
+        <select id="svc-dropoff" onchange="autoFillPrice()" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="">Select location...</option>
+          <option value="Airport (Arrivals)">Airport (Arrivals)</option>
+          <option value="Airport (Departures)">Airport (Departures)</option>
+          <option value="Calheta">Calheta</option>
+          <option value="Câmara de Lobos">Câmara de Lobos</option>
+          <option value="Funchal">Funchal</option>
+          <option value="Machico">Machico</option>
+          <option value="Ponta do Sol">Ponta do Sol</option>
+          <option value="Porto Moniz">Porto Moniz</option>
+          <option value="Porto Santo">Porto Santo</option>
+          <option value="Ribeira Brava">Ribeira Brava</option>
+          <option value="Santa Cruz">Santa Cruz</option>
+          <option value="Santana">Santana</option>
+          <option value="São Vicente">São Vicente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Address / Hotel</label><input type="text" id="svc-address" placeholder="Hotel name or exact address..."></div>
     </div>
     <div class="form-row col2">
       <div class="fg"><label>Flight number</label><input type="text" id="svc-flight"></div>
@@ -2684,7 +2721,18 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-compose') populateComposeModal();
   if(id==='modal-agency') populateAgencyLinkSelect();
-  if(id==='modal-price-rule') openPriceRuleModal();
+  if(id==='modal-price-rule'){
+    // Populate agency dropdown
+    const sel = document.getElementById('pr-agency');
+    if(sel){
+      sel.innerHTML = '<option value="">Select agency...</option>';
+      (allAgencies||[]).forEach(a => {
+        const o = document.createElement('option');
+        o.value = a.id; o.textContent = a.name;
+        sel.appendChild(o);
+      });
+    }
+  }
   if(id==='modal-service'){
     // Only reset date for new services, not edits
     if(!document.getElementById('svc-id')?.value){

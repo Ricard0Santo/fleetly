@@ -1770,6 +1770,7 @@ async function saveService(){
     passengers:parseInt(document.getElementById('svc-pax').value)||1,
     pickup_location:document.getElementById('svc-pickup').value.trim(),
     dropoff_location:document.getElementById('svc-dropoff').value.trim(),
+    address:document.getElementById('svc-address').value.trim(),
     flight_number:document.getElementById('svc-flight').value.trim(),
     status:document.getElementById('svc-status').value,
     vehicle_id:document.getElementById('svc-vehicle').value||null,
@@ -1804,6 +1805,7 @@ async function editService(id){
   document.getElementById('svc-pickup').value=s.pickup_location||'';
   document.getElementById('svc-dropoff').value=s.dropoff_location||'';
   document.getElementById('svc-flight').value=s.flight_number||'';
+  document.getElementById('svc-address').value=s.address||'';
   document.getElementById('svc-status').value=s.status||'Pending';
   document.getElementById('svc-vehicle').value=s.vehicle_id||'';
   document.getElementById('svc-driver').value=s.driver_id||'';
@@ -1854,6 +1856,7 @@ async function loadApprovals(){
       <div class="service-detail-grid">
         <div class="service-detail-item"><div class="service-detail-label">Pick-up</div><div class="service-detail-value">${s.pickup_location||'—'}</div></div>
         <div class="service-detail-item"><div class="service-detail-label">Drop-off</div><div class="service-detail-value">${s.dropoff_location||'—'}</div></div>
+        ${s.address?`<div class="service-detail-item" style="grid-column:span 2"><div class="service-detail-label">Address / Hotel</div><div class="service-detail-value">${s.address}</div></div>`:''}
         <div class="service-detail-item"><div class="service-detail-label">Driver</div><div class="service-detail-value">${s.drivers?.full_name||'—'}</div></div>
         <div class="service-detail-item"><div class="service-detail-label">Vehicle</div><div class="service-detail-value">${s.vehicles?.plate||'—'}</div></div>
         ${s.passengers?`<div class="service-detail-item"><div class="service-detail-label">Passengers</div><div class="service-detail-value">${s.passengers}</div></div>`:''}
@@ -2122,6 +2125,7 @@ async function driverSubmitService(){
     passengers: parseInt(document.getElementById('da-pax').value)||1,
     pickup_location: document.getElementById('da-pickup').value.trim(),
     dropoff_location: document.getElementById('da-dropoff').value.trim(),
+    address: document.getElementById('da-address')?.value.trim()||null,
     flight_number: document.getElementById('da-flight').value.trim(),
     vehicle_id: document.getElementById('da-vehicle').value||null,
     notes: document.getElementById('da-notes').value.trim(),
@@ -3790,6 +3794,7 @@ async function sendAgencyService(){
     passengers: parseInt(document.getElementById('ag-svc-pax').value)||1,
     pickup_location: document.getElementById('ag-svc-pickup').value.trim(),
     dropoff_location: document.getElementById('ag-svc-dropoff').value.trim(),
+    address: document.getElementById('ag-svc-address')?.value.trim()||null,
     flight_number: document.getElementById('ag-svc-flight').value.trim(),
     notes: document.getElementById('ag-svc-notes').value.trim(),
     status: 'Pending',
@@ -4266,11 +4271,6 @@ function pickDriverDate(date){
   <option value="Santa Cruz">
   <option value="Santana">
   <option value="São Vicente">
-  <option value="Hotel Savoy">
-  <option value="Hotel Pestana">
-  <option value="Hotel Reid's Palace">
-  <option value="Hotel The Vine">
-  <option value="Hotel Cliff Bay">
 </datalist>
 
 </body>

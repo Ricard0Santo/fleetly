@@ -4458,6 +4458,104 @@ function pickDriverDate(date){
   loadDriverServices(date, date);
 }
 
+
+// =============================================
+// PRICE RULES
+// =============================================
+
+async function loadPriceRules(){
+  const {data} = await sb.from('price_rules')
+    .select('*, agencies(name)')
+    .eq('company_id', currentProfile.company_id)
+    .order('created_at', {ascending: false});
+  const rows = data||[];
+  document.getElementById('price-rules-count').textContent = rows.length + ' rule' + (rows.length!==1?'s':'');
+  const tbody = document.getElementById('price-rules-body');
+  const empty = document.getElementById('price-rules-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td><strong>${r.agencies?.name||'—'}</strong></td>
+    <td>${r.pickup_location||'—'}</td>
+    <td>${r.dropoff_location||'—'}</td>
+    <td style="color:var(--teal);font-weight:700">€${parseFloat(r.service_price||0).toFixed(2)}</td>
+    <td>€${parseFloat(r.driver_cost||0).toFixed(2)}</td>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-secondary btn-sm" onclick="editPriceRule('${r.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePriceRule('${r.id}')">Del</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function savePriceRule(){
+  const id = document.getElementById('pr-id').value;
+  const agencyId = document.getElementById('pr-agency').value;
+  const pickup = document.getElementById('pr-pickup').value;
+  const dropoff = document.getElementById('pr-dropoff').value;
+  const price = parseFloat(document.getElementById('pr-price').value)||0;
+  const driverCost = parseFloat(document.getElementById('pr-driver').value)||0;
+  if(!agencyId || !pickup || !dropoff){ showToast('Please fill in agency and both locations.'); return; }
+  const data = {
+    company_id: currentProfile.company_id,
+    agency_id: agencyId,
+    pickup_location: pickup,
+    dropoff_location: dropoff,
+    service_price: price,
+    driver_cost: driverCost
+  };
+  let error;
+  if(id){ const res = await sb.from('price_rules').update(data).eq('id',id); error = res.error; }
+  else { const res = await sb.from('price_rules').insert(data); error = res.error; }
+  if(error){ showToast('Error: ' + error.message); console.error(error); return; }
+  closeModal('modal-price-rule');
+  document.getElementById('pr-id').value = '';
+  loadPriceRules();
+  showToast('Price rule saved! ✅');
+}
+
+async function editPriceRule(id){
+  const {data:r} = await sb.from('price_rules').select('*').eq('id',id).single();
+  if(!r) return;
+  const sel = document.getElementById('pr-agency');
+  sel.innerHTML = '<option value="">Select agency...</option>';
+  (allAgencies||[]).forEach(a => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.name; sel.appendChild(o); });
+  document.getElementById('pr-id').value = r.id;
+  document.getElementById('pr-agency').value = r.agency_id;
+  document.getElementById('pr-pickup').value = r.pickup_location||'';
+  document.getElementById('pr-dropoff').value = r.dropoff_location||'';
+  document.getElementById('pr-price').value = r.service_price||'';
+  document.getElementById('pr-driver').value = r.driver_cost||'';
+  document.getElementById('price-rule-modal-title').textContent = 'Edit Price Rule';
+  openModal('modal-price-rule');
+}
+
+async function deletePriceRule(id){
+  if(!confirm('Delete this price rule?'))return;
+  await sb.from('price_rules').delete().eq('id',id);
+  loadPriceRules();
+  showToast('Price rule deleted.');
+}
+
+async function autoFillPrice(){
+  const agencyId = document.getElementById('svc-agency')?.value;
+  const pickup = document.getElementById('svc-pickup')?.value;
+  const dropoff = document.getElementById('svc-dropoff')?.value;
+  if(!agencyId || !pickup || !dropoff) return;
+  const {data} = await sb.from('price_rules').select('*')
+    .eq('company_id', currentProfile.company_id)
+    .eq('agency_id', agencyId)
+    .eq('pickup_location', pickup)
+    .eq('dropoff_location', dropoff)
+    .single();
+  if(data){
+    const priceEl = document.getElementById('svc-price');
+    const driverEl = document.getElementById('svc-driver-cost');
+    if(priceEl) priceEl.value = data.service_price;
+    if(driverEl) driverEl.value = data.driver_cost;
+    showToast('💲 Price auto-filled!');
+  }
+}
+
 </script>
 
 <datalist id="locations-list">

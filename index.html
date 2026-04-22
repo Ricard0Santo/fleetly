@@ -2245,6 +2245,7 @@ async function loadDriverServices(from,to){
           <div class="service-actions">
             <button class="btn btn-success btn-sm" onclick="openDriverNotes('${s.id}','completed','Mark as Completed')">✅ Completed</button>
             <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none" onclick="openDriverNotes('${s.id}','cancelled','Mark as Cancelled')">❌ Cancelled</button>
+            <button class="btn btn-print btn-sm" onclick="printDriverDoc('${s.id}')">🖨️ Document</button>
           </div>
         `:''}
         ${s.status==='Pending Approval'?`<div style="margin-top:10px;font-size:12px;color:#6B21A8;font-weight:700">⏳ Waiting for admin approval...</div>`:''}

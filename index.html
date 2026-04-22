@@ -2408,32 +2408,23 @@ async function saveDriver(){
     // Create login account if email and password provided
     if(loginEmail && password){
       try {
-        const res = await fetch('https://pzepijkdkiglswderrdv.supabase.co/auth/v1/admin/users', {
+        const res = await fetch('/.netlify/functions/create-user', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZXBpamtka2lnbHN3ZGVycmR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjEwMjA0MywiZXhwIjoyMDkxNjc4MDQzfQ.Garw0_4gYSSlbRBBiMB1i7YW2Lgh-mCId7xJIzjPRZU',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZXBpamtka2lnbHN3ZGVycmR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjEwMjA0MywiZXhwIjoyMDkxNjc4MDQzfQ.Garw0_4gYSSlbRBBiMB1i7YW2Lgh-mCId7xJIzjPRZU'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: loginEmail,
             password: password,
-            email_confirm: true,
-            user_metadata: { full_name: data.full_name, role: 'driver' }
+            full_name: data.full_name,
+            company_id: currentProfile.company_id
           })
         });
         const userData = await res.json();
         if(userData.id){
-          // Link profile
-          await sb.from('profiles').update({
-            role: 'driver',
-            company_id: currentProfile.company_id,
-            full_name: data.full_name
-          }).eq('id', userData.id);
           data.profile_id = userData.id;
+          showToast('✅ Login account created!');
         } else {
           console.error('User creation error:', userData);
-          showToast('Warning: Login not created — ' + (userData.message||'unknown error'));
+          showToast('Warning: Login not created — ' + (userData.error||'unknown error'));
         }
       } catch(e) {
         console.error('Error creating user:', e);

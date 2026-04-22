@@ -1143,12 +1143,24 @@ tr:hover td{background:#f8f9fc}
     <div class="form-row">
       <div class="fg"><label>Notes</label><input type="text" id="drv-notes"></div>
     </div>
+    <div class="form-row col2">
+      <div class="fg">
+        <label>Login email</label>
+        <input type="email" id="drv-login-email2" placeholder="driver@email.com">
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Email the driver will use to login</div>
+      </div>
+      <div class="fg">
+        <label>Temporary password</label>
+        <input type="text" id="drv-password" placeholder="e.g. driver1234">
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Driver can change after first login</div>
+      </div>
+    </div>
     <div style="background:#e8fdf8;border:1px solid #00C9A7;border-radius:8px;padding:12px;margin-bottom:4px;font-size:12px;color:#085041">
-      💡 After saving, go to <strong>Supabase → Authentication → Users</strong> to create the driver's login account with their email and a password.
+      ✅ Fleetly will automatically create the driver login account!
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-driver')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDriver()">Save Driver</button>
+      <button class="btn btn-primary" id="save-driver-btn" onclick="saveDriver()">Save Driver</button>
     </div>
   </div>
 </div>
@@ -2369,11 +2381,13 @@ async function loadDrivers(){
 
 async function saveDriver(){
   const id=document.getElementById('drv-id').value;
+  const loginEmail = document.getElementById('drv-login-email2')?.value.trim() || document.getElementById('drv-login-email')?.value.trim();
+  const password = document.getElementById('drv-password')?.value.trim();
   const data={
     full_name:document.getElementById('drv-name').value.trim(),
     phone:document.getElementById('drv-phone').value.trim(),
     email:document.getElementById('drv-email').value.trim(),
-    login_email:document.getElementById('drv-login-email').value.trim(),
+    login_email: loginEmail,
     status:document.getElementById('drv-status').value,
     licence_number:document.getElementById('drv-licence').value.trim(),
     licence_expiry:document.getElementById('drv-licence-exp').value||null,
@@ -2382,13 +2396,60 @@ async function saveDriver(){
     company_id:currentProfile?.company_id
   };
   if(!data.full_name){showToast('Please enter driver name.');return;}
-  if(id){await sb.from('drivers').update(data).eq('id',id);}
-  else{await sb.from('drivers').insert(data);}
+
+  const btn = document.getElementById('save-driver-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Saving...'; }
+
+  let driverId = id;
+
+  if(id){
+    await sb.from('drivers').update(data).eq('id',id);
+  } else {
+    // Create login account if email and password provided
+    if(loginEmail && password){
+      try {
+        const res = await fetch('https://pzepijkdkiglswderrdv.supabase.co/auth/v1/admin/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZXBpamtka2lnbHN3ZGVycmR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjEwMjA0MywiZXhwIjoyMDkxNjc4MDQzfQ.Garw0_4gYSSlbRBBiMB1i7YW2Lgh-mCId7xJIzjPRZU',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZXBpamtka2lnbHN3ZGVycmR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjEwMjA0MywiZXhwIjoyMDkxNjc4MDQzfQ.Garw0_4gYSSlbRBBiMB1i7YW2Lgh-mCId7xJIzjPRZU'
+          },
+          body: JSON.stringify({
+            email: loginEmail,
+            password: password,
+            email_confirm: true,
+            user_metadata: { full_name: data.full_name, role: 'driver' }
+          })
+        });
+        const userData = await res.json();
+        if(userData.id){
+          // Link profile
+          await sb.from('profiles').update({
+            role: 'driver',
+            company_id: currentProfile.company_id,
+            full_name: data.full_name
+          }).eq('id', userData.id);
+          data.profile_id = userData.id;
+        } else {
+          console.error('User creation error:', userData);
+          showToast('Warning: Login not created — ' + (userData.message||'unknown error'));
+        }
+      } catch(e) {
+        console.error('Error creating user:', e);
+        showToast('Warning: Could not create login account.');
+      }
+    }
+    const {data:inserted} = await sb.from('drivers').insert(data).select().single();
+    driverId = inserted?.id;
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='Save Driver'; }
   closeModal('modal-driver');
   resetDriverForm();
   await loadDrivers();
   await loadMasterData();
-  showToast(id?'Driver updated!':'Driver added!');
+  showToast(id?'Driver updated!':'Driver added with login! ✅');
 }
 
 async function editDriver(id){

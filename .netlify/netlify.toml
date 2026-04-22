@@ -1,14 +1,13 @@
+functionsDirectory = "C:\\Users\\santo\\fleetly\\netlify\\functions"
+functionsDirectoryOrigin = "config-v1"
 plugins = []
 headers = []
 redirects = []
 
-[functions]
-
-[functions."*"]
-
 [build]
 publish = "C:\\Users\\santo\\fleetly"
-publishOrigin = "default"
+publishOrigin = "config"
+functions = "C:\\Users\\santo\\fleetly\\netlify\\functions"
 
 [build.environment]
 
@@ -23,3 +22,7 @@ publishOrigin = "default"
 [build.processing.js]
 
 [build.services]
+
+[functions]
+
+[functions."*"]

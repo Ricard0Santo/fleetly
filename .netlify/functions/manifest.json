@@ -1,0 +1,1 @@
+{"functions":[{"bundler":"zisi","buildData":{"runtimeAPIVersion":1},"mainFile":"C:\\Users\\santo\\fleetly\\netlify\\functions\\create-user.js","name":"create-user","priority":10,"runtimeVersion":"nodejs24.x","path":"C:\\Users\\santo\\fleetly\\.netlify\\functions\\create-user.zip","runtime":"js"}],"system":{"arch":"x64","platform":"win32"},"timestamp":1776881166246,"version":1}

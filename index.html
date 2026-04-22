@@ -276,7 +276,8 @@ tr:hover td{background:#f8f9fc}
       <button class="notif-btn" onclick="toggleNotif()" id="notif-btn">
         🔔<span class="notif-badge" id="notif-count" style="display:none">0</span>
       </button>
-      <button class="btn-logout" onclick="signOut()">Sign out</button>
+      <button id="lang-toggle" onclick="toggleLanguage()" style="padding:4px 10px;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:Arial,sans-serif">🇵🇹 PT</button>
+      <button class="btn-logout" id="btn-signout" onclick="signOut()">Sign out</button>
     </div>
   </div>
 
@@ -2322,24 +2323,25 @@ async function loadDriverServices(from,to){
         <div class="service-card-header">
           <div>
             <div class="service-card-title">${s.client_name}</div>
-            <div class="service-card-meta">${s.pickup_time?'🕐 '+s.pickup_time+' · ':''} ${s.agencies?.name||'—'} · ${s.service_type}</div>
+            <div class="service-card-meta">${s.pickup_time?'🕐 '+s.pickup_time+' · ':''} ${s.agencies?.name||'—'} · ${t(s.service_type)}</div>
           </div>
           <div>${statusBadge(s.status)}</div>
         </div>
         <div class="service-detail-grid">
-          <div class="service-detail-item"><div class="service-detail-label">Pick-up</div><div class="service-detail-value">${s.pickup_location||'—'}</div></div>
-          <div class="service-detail-item"><div class="service-detail-label">Drop-off</div><div class="service-detail-value">${s.dropoff_location||'—'}</div></div>
-          ${s.flight_number?`<div class="service-detail-item"><div class="service-detail-label">Flight</div><div class="service-detail-value">${s.flight_number}</div></div>`:''}
-          <div class="service-detail-item"><div class="service-detail-label">Passengers</div><div class="service-detail-value">${s.passengers||1}</div></div>
-          <div class="service-detail-item"><div class="service-detail-label">Vehicle</div><div class="service-detail-value">${s.vehicles?.plate||'—'}</div></div>
-          <div class="service-detail-item"><div class="service-detail-label">My Payment</div><div class="service-detail-value" style="color:var(--teal);font-weight:700">€${parseFloat(s.driver_cost||0).toFixed(2)}</div></div>
-          ${s.driver_notes?`<div class="service-detail-item" style="grid-column:span 2"><div class="service-detail-label">My Note</div><div class="service-detail-value">${s.driver_notes}</div></div>`:''}
+          <div class="service-detail-item"><div class="service-detail-label">${t('Pick-up')}</div><div class="service-detail-value">${s.pickup_location||'—'}</div></div>
+          <div class="service-detail-item"><div class="service-detail-label">${t('Drop-off')}</div><div class="service-detail-value">${s.dropoff_location||'—'}</div></div>
+          ${s.address?`<div class="service-detail-item" style="grid-column:span 2"><div class="service-detail-label">${t('Address / Hotel')}</div><div class="service-detail-value">${s.address}</div></div>`:''}
+          ${s.flight_number?`<div class="service-detail-item"><div class="service-detail-label">${t('Flight')}</div><div class="service-detail-value">${s.flight_number}</div></div>`:''}
+          <div class="service-detail-item"><div class="service-detail-label">${t('Passengers')}</div><div class="service-detail-value">${s.passengers||1}</div></div>
+          <div class="service-detail-item"><div class="service-detail-label">${t('Vehicle')}</div><div class="service-detail-value">${s.vehicles?.plate||'—'}</div></div>
+          <div class="service-detail-item"><div class="service-detail-label">${t('My Payment')}</div><div class="service-detail-value" style="color:var(--teal);font-weight:700">€${parseFloat(s.driver_cost||0).toFixed(2)}</div></div>
+          ${s.driver_notes?`<div class="service-detail-item" style="grid-column:span 2"><div class="service-detail-label">${t('My Note')}</div><div class="service-detail-value">${s.driver_notes}</div></div>`:''}
         </div>
         ${(s.status==='Pending'||s.status==='Confirmed')?`
           <div class="service-actions">
-            <button class="btn btn-success btn-sm" onclick="openDriverNotes('${s.id}','completed','Mark as Completed')">✅ Completed</button>
-            <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none" onclick="openDriverNotes('${s.id}','cancelled','Mark as Cancelled')">❌ Cancelled</button>
-            <button class="btn btn-print btn-sm" onclick="printDriverDoc('${s.id}')">🖨️ Document</button>
+            <button class="btn btn-success btn-sm" onclick="openDriverNotes('${s.id}','completed','Mark as Completed')">${t('✅ Completed')}</button>
+            <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none" onclick="openDriverNotes('${s.id}','cancelled','Mark as Cancelled')">${t('❌ Cancelled')}</button>
+            <button class="btn btn-print btn-sm" onclick="printDriverDoc('${s.id}')">${t('🖨️ Document')}</button>
           </div>
         `:''}
         ${s.status==='Pending Approval'?`<div style="margin-top:10px;font-size:12px;color:#6B21A8;font-weight:700">⏳ Waiting for admin approval...</div>`:''}
@@ -4876,6 +4878,183 @@ function showMobileNav(role){
         <span class="mob-nav-icon">✉️</span>Messages
       </div>
     `;
+  }
+}
+
+// =============================================
+// LANGUAGE TOGGLE - PT/EN
+// =============================================
+let currentLang = 'en';
+
+const translations = {
+  // Navigation
+  'My Services': 'Os Meus Serviços',
+  'Add Service': 'Adicionar Serviço',
+  'My Diesel': 'O Meu Gasóleo',
+  'My Profile': 'O Meu Perfil',
+  'Messages': 'Mensagens',
+  'Dashboard': 'Painel',
+  'Services': 'Serviços',
+  'Approvals': 'Aprovações',
+  'Reports': 'Relatórios',
+  'Drivers': 'Motoristas',
+  'Vehicles': 'Viaturas',
+  'Agencies': 'Agências',
+  'Vehicle Costs': 'Custos de Viatura',
+  'Company Costs': 'Custos da Empresa',
+  'Price Rules': 'Tabela de Preços',
+  'Sign out': 'Sair',
+  
+  // Driver pages
+  'Your assigned services': 'Os seus serviços atribuídos',
+  'No services for this period.': 'Sem serviços para este período.',
+  'No driver profile linked. Contact your admin.': 'Perfil de motorista não ligado. Contacte o administrador.',
+  'Today': 'Hoje',
+  'Tomorrow': 'Amanhã',
+  'This week': 'Esta semana',
+  'This month': 'Este mês',
+  'Pick date': 'Escolher data',
+  'My Services': 'Os Meus Serviços',
+  
+  // Service card labels
+  'Pick-up': 'Embarque',
+  'Drop-off': 'Desembarque',
+  'Address / Hotel': 'Morada / Hotel',
+  'Flight': 'Voo',
+  'Passengers': 'Passageiros',
+  'Vehicle': 'Viatura',
+  'My Payment': 'O Meu Pagamento',
+  'My Note': 'A Minha Nota',
+  'Service': 'Serviço',
+  
+  // Status
+  'Completed': 'Concluído',
+  'Cancelled': 'Cancelado',
+  'Pending': 'Pendente',
+  'Confirmed': 'Confirmado',
+  'Pending Approval': 'Aguarda Aprovação',
+  
+  // Buttons
+  '✅ Completed': '✅ Concluído',
+  '❌ Cancelled': '❌ Cancelado',
+  '🖨️ Document': '🖨️ Documento',
+  '+ Add Service': '+ Adicionar Serviço',
+  'Submit for Approval': 'Submeter para Aprovação',
+  'Message Admin': 'Mensagem ao Admin',
+  
+  // Days
+  'Today —': 'Hoje —',
+  'Tomorrow —': 'Amanhã —',
+  'Yesterday —': 'Ontem —',
+  'Monday': 'Segunda-feira',
+  'Tuesday': 'Terça-feira',
+  'Wednesday': 'Quarta-feira',
+  'Thursday': 'Quinta-feira',
+  'Friday': 'Sexta-feira',
+  'Saturday': 'Sábado',
+  'Sunday': 'Domingo',
+  
+  // service types
+  'Arrival (Airport)': 'Chegada (Aeroporto)',
+  'Departure (Airport)': 'Partida (Aeroporto)',
+  'Pick Up': 'Recolha',
+  'Half Day Tour': 'Meia Volta',
+  'Full Day Tour': 'Volta Completa',
+  'Day Service': 'Serviço Diário',
+
+  // Diesel page
+  'Log and track your fuel records': 'Registar e acompanhar os abastecimentos',
+  'Log Diesel': 'Registar Gasóleo',
+  'Date': 'Data',
+  'Litres': 'Litros',
+  'Cost (€)': 'Custo (€)',
+  'Mileage (km)': 'Quilómetros',
+  'Notes': 'Notas',
+  'Records': 'Registos',
+  'Total Litres': 'Total Litros',
+  'Total Cost': 'Custo Total',
+  'Avg €/Litre': 'Média €/Litro',
+  'No diesel records yet. Add your first record!': 'Sem registos de gasóleo. Adicione o primeiro!',
+  'Save': 'Guardar',
+  'Cancel': 'Cancelar',
+
+  // Messages
+  'Messages from your company': 'Mensagens da sua empresa',
+  'Inbox': 'Entrada',
+  'Sent': 'Enviados',
+  '✏️ Message Admin': '✏️ Mensagem ao Admin',
+  'No messages yet.': 'Sem mensagens.',
+  'No sent messages yet.': 'Sem mensagens enviadas.',
+  'Message to Admin': 'Mensagem ao Administrador',
+  'Subject': 'Assunto',
+  'Message': 'Mensagem',
+  'Send': 'Enviar',
+  'Close': 'Fechar',
+
+  // Profile
+  'My Profile': 'O Meu Perfil',
+  'Earnings': 'Ganhos',
+  'Total': 'Total',
+  'My Earnings': 'Os Meus Ganhos',
+};
+
+function t(key){
+  if(currentLang === 'pt' && translations[key]) return translations[key];
+  return key;
+}
+
+function toggleLanguage(){
+  currentLang = currentLang === 'en' ? 'pt' : 'en';
+  const btn = document.getElementById('lang-toggle');
+  if(btn) btn.innerHTML = currentLang === 'pt' ? '🇬🇧 EN' : '🇵🇹 PT';
+  applyLanguage();
+}
+
+function applyLanguage(){
+  // Update all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+
+  // Update sign out button
+  const signout = document.getElementById('btn-signout');
+  if(signout) signout.textContent = t('Sign out');
+
+  // Update nav items
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const text = el.querySelector('span.nav-icon');
+    if(text && el.textContent){
+      const icon = text.textContent;
+      const label = el.textContent.replace(icon,'').trim().split('\n')[0].trim();
+      const translated = t(label);
+      if(translated !== label){
+        // Keep icon and badge
+        const badge = el.querySelector('span:not(.nav-icon)');
+        el.innerHTML = `<span class="nav-icon">${icon}</span>${translated}`;
+        if(badge) el.appendChild(badge);
+      }
+    }
+  });
+
+  // Update mobile nav
+  document.querySelectorAll('.mob-nav-item').forEach(el => {
+    const icon = el.querySelector('.mob-nav-icon');
+    if(icon){
+      const iconText = icon.textContent;
+      const label = el.textContent.replace(iconText,'').trim();
+      const translated = t(label);
+      if(translated !== label){
+        el.innerHTML = `<span class="mob-nav-icon">${iconText}</span>${translated}`;
+      }
+    }
+  });
+
+  // Reload current driver page to apply translations
+  const activeDriverPage = document.querySelector('#page-driver-home.active, #page-driver-diesel.active, #page-driver-messages.active');
+  if(activeDriverPage){
+    const pageId = activeDriverPage.id.replace('page-','');
+    if(pageId === 'driver-home') setDriverPeriodByName('month');
   }
 }
 

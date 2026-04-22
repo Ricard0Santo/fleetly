@@ -142,11 +142,72 @@ tr:hover td{background:#f8f9fc}
 .approval-card-title{font-size:13px;font-weight:700;color:#6B21A8;margin-bottom:8px}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:var(--white);padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;display:none;border-left:4px solid var(--teal)}
 @media(max-width:768px){
+  /* Layout */
   .sidebar{display:none}
+  .main{padding:12px;margin-bottom:70px}
+  
+  /* Mobile topbar */
+  .topbar{padding:0 12px;height:52px}
+  .topbar .logo-text{font-size:20px}
+  
+  /* Forms */
   .form-row.col2,.form-row.col3,.form-row.col4{grid-template-columns:1fr}
-  .main{padding:16px}
-  .notif-panel{width:100%}
+  
+  /* Notifications */
+  .notif-panel{width:100%;right:0;left:0;top:52px;border-radius:0}
+  
+  /* Tables - make scrollable */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:600px}
+  
+  /* Cards */
+  .service-card{padding:14px}
+  .service-detail-grid{grid-template-columns:1fr 1fr}
+  
+  /* Metrics */
+  .metrics{grid-template-columns:1fr 1fr}
+  
+  /* Modals */
+  .modal{width:95%;max-height:90vh;overflow-y:auto;margin:5vh auto}
+  
+  /* Buttons */
+  .btn-sm{padding:6px 10px;font-size:12px}
+  
+  /* Period buttons */
+  .period-btns{flex-wrap:wrap;gap:4px}
+  .pbtn{font-size:11px;padding:5px 8px}
+  
+  /* Page title */
+  .page-title{font-size:20px}
+  
+  /* Service actions */
+  .service-actions{flex-wrap:wrap;gap:6px}
+  
+  /* Mobile bottom nav */
+  #mobile-nav{display:flex!important}
 }
+
+/* Mobile bottom navigation */
+#mobile-nav{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:#0F1923;
+  border-top:1px solid rgba(255,255,255,0.1);
+  z-index:1000;
+  padding:8px 0 12px;
+  justify-content:space-around;
+  align-items:center;
+}
+.mob-nav-item{
+  display:flex;flex-direction:column;align-items:center;
+  color:rgba(255,255,255,0.5);font-size:10px;font-weight:600;
+  cursor:pointer;padding:4px 12px;border-radius:8px;
+  transition:all 0.15s;text-transform:uppercase;letter-spacing:0.5px;
+  gap:3px;
+}
+.mob-nav-item.active,.mob-nav-item:hover{color:#00C9A7}
+.mob-nav-icon{font-size:20px;line-height:1}
 @media print{body>*{display:none!important}#print-doc{display:block!important;font-family:Arial,sans-serif;color:#000;padding:20px}}
 #print-doc{display:none}
 </style>
@@ -177,6 +238,37 @@ tr:hover td{background:#f8f9fc}
 
 <!-- APP -->
 <div id="app">
+  <!-- MOBILE BOTTOM NAV - Admin -->
+  <div id="mobile-nav">
+    <div class="mob-nav-item active" id="mob-dashboard" onclick="showPage('dashboard');setMobActive('mob-dashboard')">
+      <span class="mob-nav-icon">📊</span>Home
+    </div>
+    <div class="mob-nav-item" id="mob-services" onclick="showPage('services');setMobActive('mob-services')">
+      <span class="mob-nav-icon">🚗</span>Services
+    </div>
+    <div class="mob-nav-item" id="mob-approvals" onclick="showPage('approvals');setMobActive('mob-approvals')">
+      <span class="mob-nav-icon">✅</span>Approvals
+    </div>
+    <div class="mob-nav-item" id="mob-messages" onclick="showPage('messages');setMobActive('mob-messages')">
+      <span class="mob-nav-icon">✉️</span>Messages
+    </div>
+    <div class="mob-nav-item" id="mob-more" onclick="toggleMobileMenu()">
+      <span class="mob-nav-icon">☰</span>More
+    </div>
+  </div>
+
+  <!-- MOBILE MORE MENU -->
+  <div id="mobile-more-menu" style="display:none;position:fixed;bottom:70px;left:0;right:0;background:#0F1923;border-top:1px solid rgba(255,255,255,0.1);z-index:999;padding:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div onclick="showPage('drivers');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">👤<br>Drivers</div>
+      <div onclick="showPage('vehicles');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">🚙<br>Vehicles</div>
+      <div onclick="showPage('agencies');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">🏢<br>Agencies</div>
+      <div onclick="showPage('reports');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">📈<br>Reports</div>
+      <div onclick="showPage('vehicle-costs');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">⛽<br>Costs</div>
+      <div onclick="showPage('price-rules');toggleMobileMenu()" style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:#fff;font-size:11px">💲<br>Prices</div>
+    </div>
+  </div>
+
   <div class="topbar">
     <div class="topbar-logo">fleet<span>ly</span></div>
     <div class="topbar-right">
@@ -1717,6 +1809,7 @@ async function initApp(user){
     document.getElementById('driver-nav').style.display = 'none';
     document.getElementById('agency-nav').style.display = 'none';
     document.getElementById('superadmin-nav').style.display = 'none';
+    showMobileNav('admin');
     await loadMasterData();
     await loadDashboard();
     setServicePeriodByName('month');
@@ -1728,6 +1821,7 @@ async function initApp(user){
     document.getElementById('admin-nav').style.display = 'none';
     document.getElementById('driver-nav').style.display = 'none';
     document.getElementById('agency-nav').style.display = 'block';
+    showMobileNav('agency');
     // Load agency data
     try {
       const { data: ag, error: agErr } = await sb.from('agencies').select('*').eq('profile_id', user.id).single();
@@ -4727,6 +4821,62 @@ async function printDriverDoc(id){
     </div>
   </div>`;
   window.print();
+}
+
+// =============================================
+// MOBILE NAVIGATION
+// =============================================
+function setMobActive(id){
+  document.querySelectorAll('.mob-nav-item').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+  // Close more menu if open
+  const menu = document.getElementById('mobile-more-menu');
+  if(menu) menu.style.display = 'none';
+}
+
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobile-more-menu');
+  if(menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function showMobileNav(role){
+  const nav = document.getElementById('mobile-nav');
+  if(!nav) return;
+  if(role === 'driver'){
+    nav.innerHTML = `
+      <div class="mob-nav-item active" id="mob-d-home" onclick="showPage('driver-home');setMobActive('mob-d-home')">
+        <span class="mob-nav-icon">📋</span>Services
+      </div>
+      <div class="mob-nav-item" id="mob-d-add" onclick="showPage('driver-add');setMobActive('mob-d-add')">
+        <span class="mob-nav-icon">➕</span>Add
+      </div>
+      <div class="mob-nav-item" id="mob-d-diesel" onclick="showPage('driver-diesel');setMobActive('mob-d-diesel')">
+        <span class="mob-nav-icon">⛽</span>Diesel
+      </div>
+      <div class="mob-nav-item" id="mob-d-msg" onclick="showPage('driver-messages');setMobActive('mob-d-msg')">
+        <span class="mob-nav-icon">✉️</span>Messages
+      </div>
+      <div class="mob-nav-item" id="mob-d-profile" onclick="showPage('driver-profile');setMobActive('mob-d-profile')">
+        <span class="mob-nav-icon">👤</span>Profile
+      </div>
+    `;
+  } else if(role === 'agency'){
+    nav.innerHTML = `
+      <div class="mob-nav-item active" id="mob-ag-dash" onclick="showPage('agency-dashboard');setMobActive('mob-ag-dash')">
+        <span class="mob-nav-icon">📊</span>Dashboard
+      </div>
+      <div class="mob-nav-item" id="mob-ag-svc" onclick="showPage('agency-services');setMobActive('mob-ag-svc')">
+        <span class="mob-nav-icon">🚗</span>Send
+      </div>
+      <div class="mob-nav-item" id="mob-ag-hist" onclick="showPage('agency-history');setMobActive('mob-ag-hist')">
+        <span class="mob-nav-icon">📋</span>History
+      </div>
+      <div class="mob-nav-item" id="mob-ag-msg" onclick="showPage('agency-messages');setMobActive('mob-ag-msg')">
+        <span class="mob-nav-icon">✉️</span>Messages
+      </div>
+    `;
+  }
 }
 
 </script>

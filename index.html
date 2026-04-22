@@ -2737,37 +2737,114 @@ async function exportReport(){
 // PRINT
 // =============================================
 async function printDoc(id){
-  const{data:s}=await sb.from('services').select('*,agencies(name),drivers(full_name),vehicles(plate)').eq('id',id).single();
+  const{data:s}=await sb.from('services').select('*,agencies(name),drivers(full_name,phone),vehicles(plate,make,model)').eq('id',id).single();
   if(!s)return;
-  const docNum='AE-'+s.service_date.replace(/-/g,'')+'-'+s.id.slice(-4).toUpperCase();
+
+  // Get company details
+  const{data:co}=await sb.from('companies').select('*').eq('id',currentProfile.company_id).single();
+
+  const docNum=(co?.name||'FL').split(' ').map(w=>w[0]).join('').toUpperCase()+'-'+s.service_date.replace(/-/g,'')+'-'+s.id.slice(-4).toUpperCase();
   const now=new Date().toLocaleDateString('pt-PT');
-  function row(l,v){return `<div style="padding:8px 14px;border-bottom:0.5px solid #eee;border-right:0.5px solid #eee"><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500;color:#1a1a1a">${v||'—'}</div></div>`;}
-  document.getElementById('print-doc').innerHTML=`<div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:30px;color:#1a1a1a">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #0F1923">
-      <div><div style="font-size:26px;font-weight:700;color:#0F1923;letter-spacing:-1px">fleet<span style="font-weight:300;color:#00C9A7">ly</span></div><div style="font-size:11px;color:#00C9A7;letter-spacing:3px;margin-top:4px">FLEET MANAGEMENT</div></div>
-      <div style="text-align:right;font-size:11px;color:#555;line-height:1.7"><div style="font-weight:700;color:#0F1923;font-size:13px">Ricardo Santo, Unipessoal Lda</div><div>RNAVT Registo n.º 8229</div><div>Caminho da Penteada 73 · São Roque · 9020-105 Funchal</div><div>NIF: 515168882 · +351 962 573 300</div><div>manager@atlanticexpress.bet</div></div>
+
+  function row(l,v,full){
+    return `<div style="padding:10px 16px;border-bottom:0.5px solid #e8e8e8;${full?'grid-column:span 2;':''}" >
+      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">${l}</div>
+      <div style="font-size:13px;font-weight:500;color:#1a1a1a">${v||'—'}</div>
+    </div>`;
+  }
+
+  document.getElementById('print-doc').innerHTML=`
+  <div style="font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:32px;color:#1a1a1a;background:#fff">
+
+    <!-- HEADER -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #0F1923">
+      <div>
+        <div style="font-size:28px;font-weight:800;color:#0F1923;letter-spacing:-1px;line-height:1">fleet<span style="color:#00C9A7;font-weight:300">ly</span></div>
+        <div style="font-size:9px;color:#00C9A7;letter-spacing:4px;margin-top:4px;font-weight:600">FLEET MANAGEMENT</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#444;line-height:1.8">
+        <div style="font-weight:700;color:#0F1923;font-size:14px">${co?.name||'—'}</div>
+        ${co?.rnavt?`<div>RNAVT Registo n.º ${co.rnavt}</div>`:''}
+        ${co?.address?`<div>${co.address}</div>`:''}
+        ${co?.nif?`<div>NIF: ${co.nif}</div>`:''}
+        ${co?.phone?`<div>${co.phone}</div>`:''}
+        ${co?.email?`<div>${co.email}</div>`:''}
+      </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div><div style="font-size:18px;font-weight:700;color:#0F1923">TRANSPORT ORDER</div><div style="font-size:12px;color:#777;margin-top:2px">Ordem de Transporte</div></div>
-      <div style="text-align:right;font-size:12px;color:#555"><div><strong>Ref:</strong> ${docNum}</div><div><strong>Issued:</strong> ${now}</div></div>
+
+    <!-- TITLE ROW -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:#0F1923;text-transform:uppercase;letter-spacing:1px">Transport Order</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">Ordem de Transporte</div>
+      </div>
+      <div style="text-align:right;background:#f7f8fa;border:1px solid #e0e0e0;border-radius:8px;padding:10px 16px;font-size:12px;line-height:1.8">
+        <div><span style="color:#888">Ref:</span> <strong style="color:#0F1923">${docNum}</strong></div>
+        <div><span style="color:#888">Date:</span> <strong>${now}</strong></div>
+        <div><span style="color:#888">Status:</span> <strong style="color:#00C9A7">${s.status||'—'}</strong></div>
+      </div>
     </div>
-    <div style="border:1.5px solid #0F1923;border-radius:8px;overflow:hidden;margin-bottom:18px">
-      <div style="background:#0F1923;color:#fff;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Service Information</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Service Type',s.service_type)}${row('Date',formatDate(s.service_date))}${row('Pick-up Time',s.pickup_time||'—')}${row('Agency',s.agencies?.name||'—')}</div>
+
+    <!-- SERVICE INFO -->
+    <div style="border:2px solid #0F1923;border-radius:10px;overflow:hidden;margin-bottom:16px">
+      <div style="background:#0F1923;color:#fff;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
+        <span>🚗 Service Information</span>
+        <span style="color:#00C9A7;font-size:13px;font-weight:800">${s.service_type||'—'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        ${row('Date',formatDate(s.service_date))}
+        ${row('Pick-up Time',s.pickup_time||'—')}
+        ${row('Agency / Operator',s.agencies?.name||'—')}
+        ${row('Reference',docNum)}
+      </div>
     </div>
-    <div style="border:1px solid #dde;border-radius:8px;overflow:hidden;margin-bottom:18px">
-      <div style="background:#f0f3fa;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0F1923">Client & Journey</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Client Name',s.client_name)}${row('No. of Passengers',s.passengers||1)}${row('Pick-up Point',s.pickup_location||'—')}${row('Drop-off Point',s.dropoff_location||'—')}${s.flight_number?row('Flight Number',s.flight_number):''}${s.notes?row('Notes',s.notes):''}</div>
+
+    <!-- CLIENT & JOURNEY -->
+    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:16px">
+      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">👤 Client & Journey</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        ${row('Client Name',s.client_name)}
+        ${row('No. of Passengers',s.passengers||1)}
+        ${row('Pick-up Location',s.pickup_location||'—')}
+        ${row('Drop-off Location',s.dropoff_location||'—')}
+        ${s.address?row('Address / Hotel',s.address,true):''}
+        ${s.flight_number?row('Flight Number',s.flight_number):''}
+        ${s.notes?row('Notes / Special requests',s.notes,true):''}
+      </div>
     </div>
-    <div style="border:1px solid #dde;border-radius:8px;overflow:hidden;margin-bottom:24px">
-      <div style="background:#f0f3fa;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0F1923">Vehicle & Driver</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Vehicle Plate',s.vehicles?.plate||'—')}${row('Driver / Guide',s.drivers?.full_name||'—')}${row('Service Price','€'+parseFloat(s.service_price||0).toFixed(2))}${row('Status',s.status||'—')}</div>
+
+    <!-- VEHICLE & DRIVER -->
+    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:24px">
+      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">🚙 Vehicle & Driver</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        ${row('Vehicle Plate',s.vehicles?.plate||'—')}
+        ${row('Make & Model',(s.vehicles?.make||'')+(s.vehicles?.model?' '+s.vehicles.model:''))}
+        ${row('Driver / Guide',s.drivers?.full_name||'—')}
+        ${row('Driver Contact',s.drivers?.phone||'—')}
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:10px">
-      <div style="border-top:1px solid #bbb;padding-top:10px;font-size:11px;color:#555"><div style="font-weight:700;margin-bottom:4px">Driver / Guide signature</div><div style="height:40px"></div><div>Name: _______________________________</div></div>
-      <div style="border-top:1px solid #bbb;padding-top:10px;font-size:11px;color:#555"><div style="font-weight:700;margin-bottom:4px">Client signature</div><div style="height:40px"></div><div>Name: _______________________________</div></div>
+
+    <!-- SIGNATURES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+      <div style="border:1px solid #dde;border-radius:8px;padding:16px">
+        <div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Driver / Guide Signature</div>
+        <div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div>
+        <div style="font-size:10px;color:#888">Name: _______________________________</div>
+      </div>
+      <div style="border:1px solid #dde;border-radius:8px;padding:16px">
+        <div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Client Signature</div>
+        <div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div>
+        <div style="font-size:10px;color:#888">Name: _______________________________</div>
+      </div>
     </div>
-    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;text-align:center;font-size:10px;color:#aaa">Ricardo Santo, Unipessoal Lda · RNAVT 8229 · NIF 515168882 · manager@atlanticexpress.bet · +351 962 573 300</div>
+
+    <!-- FOOTER -->
+    <div style="padding-top:12px;border-top:1px solid #eee;text-align:center;font-size:9px;color:#bbb;line-height:1.8">
+      <div>${co?.name||'—'} ${co?.nif?'· NIF '+co.nif:''} ${co?.rnavt?'· RNAVT '+co.rnavt:''}</div>
+      <div>${co?.address||''} ${co?.phone?'· '+co.phone:''} ${co?.email?'· '+co.email:''}</div>
+      <div style="margin-top:4px;color:#ddd">Generated by Fleetly · getfleetly.netlify.app</div>
+    </div>
+
   </div>`;
   window.print();
 }

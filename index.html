@@ -210,7 +210,7 @@ tr:hover td{background:#f8f9fc}
 }
 .mob-nav-item.active,.mob-nav-item:hover{color:#00C9A7}
 .mob-nav-icon{font-size:20px;line-height:1}
-@media print{body>*{display:none!important}#print-doc{display:block!important;font-family:Arial,sans-serif;color:#000;padding:20px}}
+@media print{body>*{display:none!important}#print-doc{display:block!important;font-family:Arial,sans-serif;color:#000}@page{margin:10mm;size:A4}}
 #print-doc{display:none}
 </style>
 </head>
@@ -2969,112 +2969,104 @@ async function exportReport(){
 async function printDoc(id){
   const{data:s}=await sb.from('services').select('*,agencies(name),drivers(full_name,phone),vehicles(plate,make,model)').eq('id',id).single();
   if(!s)return;
-
-  // Get company details
   const{data:co}=await sb.from('companies').select('*').eq('id',currentProfile.company_id).single();
-
   const docNum=(co?.name||'FL').split(' ').map(w=>w[0]).join('').toUpperCase()+'-'+s.service_date.replace(/-/g,'')+'-'+s.id.slice(-4).toUpperCase();
   const now=new Date().toLocaleDateString('pt-PT');
-
-  function row(l,v,full){
-    return `<div style="padding:10px 16px;border-bottom:0.5px solid #e8e8e8;${full?'grid-column:span 2;':''}" >
-      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">${l}</div>
-      <div style="font-size:13px;font-weight:500;color:#1a1a1a">${v||'—'}</div>
-    </div>`;
-  }
-
+  function row(l,v){return `<tr><td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">${l}</td><td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${v||'—'}</td></tr>`;}
   document.getElementById('print-doc').innerHTML=`
-  <div style="font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:32px;color:#1a1a1a;background:#fff">
-
+  <div style="font-family:Arial,sans-serif;max-width:740px;margin:0 auto;padding:20px;color:#1a1a1a;background:#fff">
     <!-- HEADER -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #0F1923">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:2.5px solid #0F1923">
       <div>
-        <div style="font-size:28px;font-weight:800;color:#0F1923;letter-spacing:-1px;line-height:1">fleet<span style="color:#00C9A7;font-weight:300">ly</span></div>
-        <div style="font-size:9px;color:#00C9A7;letter-spacing:4px;margin-top:4px;font-weight:600">FLEET MANAGEMENT</div>
+        <div style="font-size:24px;font-weight:800;color:#0F1923;letter-spacing:-1px;line-height:1">fleet<span style="color:#00C9A7;font-weight:300">ly</span></div>
+        <div style="font-size:8px;color:#00C9A7;letter-spacing:3px;margin-top:2px;font-weight:600">FLEET MANAGEMENT</div>
       </div>
-      <div style="text-align:right;font-size:11px;color:#444;line-height:1.8">
-        <div style="font-weight:700;color:#0F1923;font-size:14px">${co?.name||'—'}</div>
-        ${co?.rnavt?`<div>RNAVT Registo n.º ${co.rnavt}</div>`:''}
+      <div style="text-align:right;font-size:10px;color:#444;line-height:1.6">
+        <div style="font-weight:700;color:#0F1923;font-size:12px">${co?.name||'—'}</div>
+        ${co?.rnavt?`<div>RNAVT n.º ${co.rnavt}</div>`:''}
         ${co?.address?`<div>${co.address}</div>`:''}
-        ${co?.nif?`<div>NIF: ${co.nif}</div>`:''}
-        ${co?.phone?`<div>${co.phone}</div>`:''}
+        ${co?.nif?`<div>NIF: ${co.nif} ${co?.phone?'· '+co.phone:''}</div>`:''}
         ${co?.email?`<div>${co.email}</div>`:''}
       </div>
     </div>
 
-    <!-- TITLE ROW -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <!-- TITLE + REF -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div>
-        <div style="font-size:20px;font-weight:800;color:#0F1923;text-transform:uppercase;letter-spacing:1px">Transport Order</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">Ordem de Transporte</div>
+        <div style="font-size:16px;font-weight:800;color:#0F1923;text-transform:uppercase;letter-spacing:1px">Transport Order <span style="font-size:11px;color:#888;font-weight:400">· Ordem de Transporte</span></div>
       </div>
-      <div style="text-align:right;background:#f7f8fa;border:1px solid #e0e0e0;border-radius:8px;padding:10px 16px;font-size:12px;line-height:1.8">
+      <div style="background:#f7f8fa;border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;font-size:11px;text-align:right;line-height:1.7">
         <div><span style="color:#888">Ref:</span> <strong style="color:#0F1923">${docNum}</strong></div>
-        <div><span style="color:#888">Date:</span> <strong>${now}</strong></div>
-        <div><span style="color:#888">Status:</span> <strong style="color:#00C9A7">${s.status||'—'}</strong></div>
+        <div><span style="color:#888">Date:</span> <strong>${now}</strong> &nbsp; <span style="color:#888">Status:</span> <strong style="color:#00C9A7">${s.status||'—'}</strong></div>
       </div>
     </div>
 
-    <!-- SERVICE INFO -->
-    <div style="border:2px solid #0F1923;border-radius:10px;overflow:hidden;margin-bottom:16px">
-      <div style="background:#0F1923;color:#fff;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
-        <span>🚗 Service Information</span>
-        <span style="color:#00C9A7;font-size:13px;font-weight:800">${s.service_type||'—'}</span>
+    <!-- TWO COLUMN LAYOUT -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <!-- SERVICE INFO -->
+      <div style="border:1.5px solid #0F1923;border-radius:8px;overflow:hidden">
+        <div style="background:#0F1923;color:#fff;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;display:flex;justify-content:space-between">
+          <span>Service</span><span style="color:#00C9A7">${s.service_type||'—'}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          ${row('Date', formatDate(s.service_date))}
+          ${row('Time', s.pickup_time||'—')}
+          ${row('Agency', s.agencies?.name||'—')}
+          ${row('Passengers', s.passengers||1)}
+          ${s.flight_number?row('Flight', s.flight_number):''}
+        </table>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">
-        ${row('Date',formatDate(s.service_date))}
-        ${row('Pick-up Time',s.pickup_time||'—')}
-        ${row('Agency / Operator',s.agencies?.name||'—')}
-        ${row('Reference',docNum)}
+      <!-- VEHICLE & DRIVER -->
+      <div style="border:1.5px solid #dde3f0;border-radius:8px;overflow:hidden">
+        <div style="background:#f0f4fb;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0F1923">Vehicle & Driver</div>
+        <table style="width:100%;border-collapse:collapse">
+          ${row('Plate', s.vehicles?.plate||'—')}
+          ${row('Vehicle', (s.vehicles?.make||'')+(s.vehicles?.model?' '+s.vehicles.model:''))}
+          ${row('Driver', s.drivers?.full_name||'—')}
+          ${row('Contact', s.drivers?.phone||'—')}
+        </table>
       </div>
     </div>
 
     <!-- CLIENT & JOURNEY -->
-    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:16px">
-      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">👤 Client & Journey</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">
-        ${row('Client Name',s.client_name)}
-        ${row('No. of Passengers',s.passengers||1)}
-        ${row('Pick-up Location',s.pickup_location||'—')}
-        ${row('Drop-off Location',s.dropoff_location||'—')}
-        ${s.address?row('Address / Hotel',s.address,true):''}
-        ${s.flight_number?row('Flight Number',s.flight_number):''}
-        ${s.notes?row('Notes / Special requests',s.notes,true):''}
-      </div>
-    </div>
-
-    <!-- VEHICLE & DRIVER -->
-    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:24px">
-      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">🚙 Vehicle & Driver</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">
-        ${row('Vehicle Plate',s.vehicles?.plate||'—')}
-        ${row('Make & Model',(s.vehicles?.make||'')+(s.vehicles?.model?' '+s.vehicles.model:''))}
-        ${row('Driver / Guide',s.drivers?.full_name||'—')}
-        ${row('Driver Contact',s.drivers?.phone||'—')}
-      </div>
+    <div style="border:1.5px solid #dde3f0;border-radius:8px;overflow:hidden;margin-bottom:10px">
+      <div style="background:#f0f4fb;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0F1923">Client & Journey</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">Client</td>
+          <td style="font-size:12px;font-weight:600;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.client_name}</td>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">Pick-up</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.pickup_location||'—'}</td>
+        </tr>
+        <tr>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap">Drop-off</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.dropoff_location||'—'}</td>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap">Hotel / Address</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.address||'—'}</td>
+        </tr>
+        ${s.notes?`<tr><td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px">Notes</td><td colspan="3" style="font-size:12px;padding:4px 10px">${s.notes}</td></tr>`:''}
+      </table>
     </div>
 
     <!-- SIGNATURES -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
-      <div style="border:1px solid #dde;border-radius:8px;padding:16px">
-        <div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Driver / Guide Signature</div>
-        <div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div>
-        <div style="font-size:10px;color:#888">Name: _______________________________</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px">
+      <div style="border:1px solid #dde;border-radius:6px;padding:10px 14px">
+        <div style="font-size:9px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Driver / Guide Signature</div>
+        <div style="height:36px;border-bottom:1px solid #bbb;margin-bottom:6px"></div>
+        <div style="font-size:9px;color:#888">Name: _______________________________</div>
       </div>
-      <div style="border:1px solid #dde;border-radius:8px;padding:16px">
-        <div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Client Signature</div>
-        <div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div>
-        <div style="font-size:10px;color:#888">Name: _______________________________</div>
+      <div style="border:1px solid #dde;border-radius:6px;padding:10px 14px">
+        <div style="font-size:9px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Client Signature</div>
+        <div style="height:36px;border-bottom:1px solid #bbb;margin-bottom:6px"></div>
+        <div style="font-size:9px;color:#888">Name: _______________________________</div>
       </div>
     </div>
 
     <!-- FOOTER -->
-    <div style="padding-top:12px;border-top:1px solid #eee;text-align:center;font-size:9px;color:#bbb;line-height:1.8">
-      <div>${co?.name||'—'} ${co?.nif?'· NIF '+co.nif:''} ${co?.rnavt?'· RNAVT '+co.rnavt:''}</div>
-      <div>${co?.address||''} ${co?.phone?'· '+co.phone:''} ${co?.email?'· '+co.email:''}</div>
-      <div style="margin-top:4px;color:#ddd">Generated by Fleetly · getfleetly.netlify.app</div>
+    <div style="padding-top:8px;border-top:1px solid #eee;text-align:center;font-size:8px;color:#bbb;line-height:1.7">
+      ${co?.name||'—'} ${co?.nif?'· NIF '+co.nif:''} ${co?.rnavt?'· RNAVT '+co.rnavt:''} ${co?.address?'· '+co.address:''} ${co?.phone?'· '+co.phone:''} ${co?.email?'· '+co.email:''}
+      <span style="color:#ddd"> · Fleetly</span>
     </div>
-
   </div>`;
   window.print();
 }
@@ -5096,37 +5088,85 @@ async function printDriverDoc(id){
   const{data:co}=await sb.from('companies').select('*').eq('id',companyId).single();
   const docNum=(co?.name||'FL').split(' ').map(w=>w[0]).join('').toUpperCase()+'-'+s.service_date.replace(/-/g,'')+'-'+s.id.slice(-4).toUpperCase();
   const now=new Date().toLocaleDateString('pt-PT');
-  function row(l,v,full){return `<div style="padding:10px 16px;border-bottom:0.5px solid #e8e8e8;${full?'grid-column:span 2;':''}"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">${l}</div><div style="font-size:13px;font-weight:500;color:#1a1a1a">${v||'—'}</div></div>`;}
+  function row(l,v){return `<tr><td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">${l}</td><td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${v||'—'}</td></tr>`;}
   document.getElementById('print-doc').innerHTML=`
-  <div style="font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:32px;color:#1a1a1a;background:#fff">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #0F1923">
-      <div><div style="font-size:28px;font-weight:800;color:#0F1923;letter-spacing:-1px;line-height:1">fleet<span style="color:#00C9A7;font-weight:300">ly</span></div><div style="font-size:9px;color:#00C9A7;letter-spacing:4px;margin-top:4px;font-weight:600">FLEET MANAGEMENT</div></div>
-      <div style="text-align:right;font-size:11px;color:#444;line-height:1.8"><div style="font-weight:700;color:#0F1923;font-size:14px">${co?.name||'—'}</div>${co?.rnavt?`<div>RNAVT n.º ${co.rnavt}</div>`:''} ${co?.address?`<div>${co.address}</div>`:''} ${co?.nif?`<div>NIF: ${co.nif}</div>`:''} ${co?.phone?`<div>${co.phone}</div>`:''} ${co?.email?`<div>${co.email}</div>`:''}</div>
+  <div style="font-family:Arial,sans-serif;max-width:740px;margin:0 auto;padding:20px;color:#1a1a1a;background:#fff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:2.5px solid #0F1923">
+      <div>
+        <div style="font-size:24px;font-weight:800;color:#0F1923;letter-spacing:-1px;line-height:1">fleet<span style="color:#00C9A7;font-weight:300">ly</span></div>
+        <div style="font-size:8px;color:#00C9A7;letter-spacing:3px;margin-top:2px;font-weight:600">FLEET MANAGEMENT</div>
+      </div>
+      <div style="text-align:right;font-size:10px;color:#444;line-height:1.6">
+        <div style="font-weight:700;color:#0F1923;font-size:12px">${co?.name||'—'}</div>
+        ${co?.rnavt?`<div>RNAVT n.º ${co.rnavt}</div>`:''}
+        ${co?.address?`<div>${co.address}</div>`:''}
+        ${co?.nif?`<div>NIF: ${co.nif} ${co?.phone?'· '+co.phone:''}</div>`:''}
+        ${co?.email?`<div>${co.email}</div>`:''}
+      </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
-      <div><div style="font-size:20px;font-weight:800;color:#0F1923;text-transform:uppercase;letter-spacing:1px">Transport Order</div><div style="font-size:11px;color:#888;margin-top:2px">Ordem de Transporte</div></div>
-      <div style="text-align:right;background:#f7f8fa;border:1px solid #e0e0e0;border-radius:8px;padding:10px 16px;font-size:12px;line-height:1.8"><div><span style="color:#888">Ref:</span> <strong style="color:#0F1923">${docNum}</strong></div><div><span style="color:#888">Date:</span> <strong>${now}</strong></div><div><span style="color:#888">Status:</span> <strong style="color:#00C9A7">${s.status||'—'}</strong></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:16px;font-weight:800;color:#0F1923;text-transform:uppercase;letter-spacing:1px">Transport Order <span style="font-size:11px;color:#888;font-weight:400">· Ordem de Transporte</span></div>
+      <div style="background:#f7f8fa;border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;font-size:11px;text-align:right;line-height:1.7">
+        <div><span style="color:#888">Ref:</span> <strong style="color:#0F1923">${docNum}</strong></div>
+        <div><span style="color:#888">Date:</span> <strong>${now}</strong> &nbsp; <span style="color:#888">Status:</span> <strong style="color:#00C9A7">${s.status||'—'}</strong></div>
+      </div>
     </div>
-    <div style="border:2px solid #0F1923;border-radius:10px;overflow:hidden;margin-bottom:16px">
-      <div style="background:#0F1923;color:#fff;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center"><span>🚗 Service Information</span><span style="color:#00C9A7;font-size:13px;font-weight:800">${s.service_type||'—'}</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Date',formatDate(s.service_date))}${row('Pick-up Time',s.pickup_time||'—')}${row('Agency / Operator',s.agencies?.name||'—')}${row('Reference',docNum)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="border:1.5px solid #0F1923;border-radius:8px;overflow:hidden">
+        <div style="background:#0F1923;color:#fff;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;display:flex;justify-content:space-between">
+          <span>Service</span><span style="color:#00C9A7">${s.service_type||'—'}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          ${row('Date', formatDate(s.service_date))}
+          ${row('Time', s.pickup_time||'—')}
+          ${row('Agency', s.agencies?.name||'—')}
+          ${row('Passengers', s.passengers||1)}
+          ${s.flight_number?row('Flight', s.flight_number):''}
+        </table>
+      </div>
+      <div style="border:1.5px solid #dde3f0;border-radius:8px;overflow:hidden">
+        <div style="background:#f0f4fb;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0F1923">Vehicle & Driver</div>
+        <table style="width:100%;border-collapse:collapse">
+          ${row('Plate', s.vehicles?.plate||'—')}
+          ${row('Vehicle', (s.vehicles?.make||'')+(s.vehicles?.model?' '+s.vehicles.model:''))}
+          ${row('Driver', s.drivers?.full_name||'—')}
+          ${row('Contact', s.drivers?.phone||'—')}
+        </table>
+      </div>
     </div>
-    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:16px">
-      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">👤 Client & Journey</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Client Name',s.client_name)}${row('No. of Passengers',s.passengers||1)}${row('Pick-up Location',s.pickup_location||'—')}${row('Drop-off Location',s.dropoff_location||'—')}${s.address?row('Address / Hotel',s.address,true):''}${s.flight_number?row('Flight Number',s.flight_number):''}${s.notes?row('Notes',s.notes,true):''}</div>
+    <div style="border:1.5px solid #dde3f0;border-radius:8px;overflow:hidden;margin-bottom:10px">
+      <div style="background:#f0f4fb;padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0F1923">Client & Journey</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">Client</td>
+          <td style="font-size:12px;font-weight:600;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.client_name}</td>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap;width:120px">Pick-up</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.pickup_location||'—'}</td>
+        </tr>
+        <tr>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap">Drop-off</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.dropoff_location||'—'}</td>
+          <td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;white-space:nowrap">Hotel / Address</td>
+          <td style="font-size:12px;font-weight:500;padding:4px 10px;border-bottom:0.5px solid #f0f0f0">${s.address||'—'}</td>
+        </tr>
+        ${s.notes?`<tr><td style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px">Notes</td><td colspan="3" style="font-size:12px;padding:4px 10px">${s.notes}</td></tr>`:''}
+      </table>
     </div>
-    <div style="border:1.5px solid #dde3f0;border-radius:10px;overflow:hidden;margin-bottom:24px">
-      <div style="background:#f0f4fb;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0F1923">🚙 Vehicle & Driver</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr">${row('Vehicle Plate',s.vehicles?.plate||'—')}${row('Make & Model',(s.vehicles?.make||'')+(s.vehicles?.model?' '+s.vehicles.model:''))}${row('Driver / Guide',s.drivers?.full_name||'—')}${row('Driver Contact',s.drivers?.phone||'—')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px">
+      <div style="border:1px solid #dde;border-radius:6px;padding:10px 14px">
+        <div style="font-size:9px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Driver / Guide Signature</div>
+        <div style="height:36px;border-bottom:1px solid #bbb;margin-bottom:6px"></div>
+        <div style="font-size:9px;color:#888">Name: _______________________________</div>
+      </div>
+      <div style="border:1px solid #dde;border-radius:6px;padding:10px 14px">
+        <div style="font-size:9px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Client Signature</div>
+        <div style="height:36px;border-bottom:1px solid #bbb;margin-bottom:6px"></div>
+        <div style="font-size:9px;color:#888">Name: _______________________________</div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
-      <div style="border:1px solid #dde;border-radius:8px;padding:16px"><div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Driver / Guide Signature</div><div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div><div style="font-size:10px;color:#888">Name: _______________________________</div></div>
-      <div style="border:1px solid #dde;border-radius:8px;padding:16px"><div style="font-size:10px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Client Signature</div><div style="height:50px;border-bottom:1px solid #bbb;margin-bottom:8px"></div><div style="font-size:10px;color:#888">Name: _______________________________</div></div>
-    </div>
-    <div style="padding-top:12px;border-top:1px solid #eee;text-align:center;font-size:9px;color:#bbb;line-height:1.8">
-      <div>${co?.name||'—'} ${co?.nif?'· NIF '+co.nif:''} ${co?.rnavt?'· RNAVT '+co.rnavt:''}</div>
-      <div>${co?.address||''} ${co?.phone?'· '+co.phone:''} ${co?.email?'· '+co.email:''}</div>
-      <div style="margin-top:4px;color:#ddd">Generated by Fleetly · getfleetly.netlify.app</div>
+    <div style="padding-top:8px;border-top:1px solid #eee;text-align:center;font-size:8px;color:#bbb;line-height:1.7">
+      ${co?.name||'—'} ${co?.nif?'· NIF '+co.nif:''} ${co?.rnavt?'· RNAVT '+co.rnavt:''} ${co?.address?'· '+co.address:''} ${co?.phone?'· '+co.phone:''} ${co?.email?'· '+co.email:''}
+      <span style="color:#ddd"> · Fleetly</span>
     </div>
   </div>`;
   window.print();

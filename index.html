@@ -5370,21 +5370,69 @@ const CHECKLIST_ITEMS = [
   { id: 'seatbelts', label: '🪢 Seatbelts', icon: '🪢' },
 ];
 
-function initChecklist(){
+async function initChecklist(){
   const container = document.getElementById('checklist-items');
   if(!container) return;
+
+  // Check if already submitted today
+  const tod = today();
+  if(currentDriver){
+    const {data:todayCheck} = await sb.from('driver_checklists')
+      .select('*,vehicles(plate,make)')
+      .eq('driver_id', currentDriver.id)
+      .gte('created_at', tod + 'T00:00:00')
+      .order('created_at', {ascending:false})
+      .limit(1);
+
+    if(todayCheck && todayCheck.length > 0){
+      const c = todayCheck[0];
+      const items = Object.values(c.checklist||{});
+      const passed = items.filter(i=>i.passed).length;
+      document.getElementById('checklist-form-card').innerHTML = `
+        <div style="text-align:center;padding:24px">
+          <div style="font-size:48px;margin-bottom:12px">${c.passed?'✅':'⚠️'}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:6px">
+            ${c.passed?'All Clear!':'Issues Reported'}
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
+            Today's checklist submitted for ${c.vehicles?.plate||'vehicle'} at ${new Date(c.created_at).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${passed}/${items.length} items passed</div>
+          <button class="btn btn-secondary" onclick="showNewChecklist()">Submit another checklist</button>
+        </div>`;
+      loadChecklistHistory();
+      return;
+    }
+  }
+
+  showNewChecklist();
+  loadChecklistHistory();
+}
+
+function showNewChecklist(){
+  const container = document.getElementById('checklist-items');
+  if(!container) return;
+
   container.innerHTML = CHECKLIST_ITEMS.map(item => `
-    <label style="display:flex;align-items:center;gap:10px;background:var(--light);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all 0.15s" 
-           onclick="toggleCheckItem('${item.id}', this)">
-      <div style="width:22px;height:22px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s" id="check-box-${item.id}"></div>
-      <span style="font-size:13px;font-weight:500">${item.label}</span>
-      <input type="checkbox" id="cl-${item.id}" style="display:none">
-    </label>
+    <div style="background:var(--light);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px">${item.label}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="setCheckItem('${item.id}', true, this)" id="cl-ok-${item.id}"
+          style="flex:1;padding:8px;border-radius:7px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#6B7280;transition:all 0.15s">
+          ✅ OK
+        </button>
+        <button onclick="setCheckItem('${item.id}', false, this)" id="cl-fail-${item.id}"
+          style="flex:1;padding:8px;border-radius:7px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#6B7280;transition:all 0.15s">
+          ❌ Issue
+        </button>
+      </div>
+      <input type="hidden" id="cl-${item.id}" value="">
+    </div>
   `).join('');
 
   // Populate vehicle select
   const vSel = document.getElementById('cl-vehicle');
-  if(vSel){
+  if(vSel && vSel.options.length <= 1){
     const companyId = currentDriver?.company_id;
     sb.from('vehicles').select('*').eq('company_id', companyId).order('plate').then(({data}) => {
       (data||[]).forEach(v => {
@@ -5395,24 +5443,20 @@ function initChecklist(){
       });
     });
   }
+}
 
-  // Populate today's services
-  const sSel = document.getElementById('cl-service');
-  if(sSel && currentDriver){
-    const tod = today();
-    sb.from('services').select('*').eq('driver_id', currentDriver.id)
-      .gte('service_date', tod).lte('service_date', tod)
-      .order('pickup_time').then(({data}) => {
-      (data||[]).forEach(s => {
-        const o = document.createElement('option');
-        o.value = s.id;
-        o.textContent = (s.pickup_time||'') + ' — ' + s.client_name;
-        sSel.appendChild(o);
-      });
-    });
+function setCheckItem(id, isOk, btn){
+  const input = document.getElementById('cl-'+id);
+  if(input) input.value = isOk ? 'ok' : 'fail';
+  const okBtn = document.getElementById('cl-ok-'+id);
+  const failBtn = document.getElementById('cl-fail-'+id);
+  if(isOk){
+    okBtn.style.background = '#00C9A7'; okBtn.style.borderColor = '#00C9A7'; okBtn.style.color = '#fff';
+    failBtn.style.background = '#fff'; failBtn.style.borderColor = 'var(--border)'; failBtn.style.color = '#6B7280';
+  } else {
+    failBtn.style.background = '#EF4444'; failBtn.style.borderColor = '#EF4444'; failBtn.style.color = '#fff';
+    okBtn.style.background = '#fff'; okBtn.style.borderColor = 'var(--border)'; okBtn.style.color = '#6B7280';
   }
-
-  loadChecklistHistory();
 }
 
 function toggleCheckItem(id, label){
@@ -5445,11 +5489,19 @@ async function submitChecklist(){
   // Build checklist results
   const results = {};
   let allPassed = true;
+  let unanswered = 0;
   CHECKLIST_ITEMS.forEach(item => {
-    const checked = document.getElementById('cl-'+item.id)?.checked || false;
-    results[item.id] = { label: item.label, passed: checked };
-    if(!checked) allPassed = false;
+    const val = document.getElementById('cl-'+item.id)?.value;
+    if(!val) unanswered++;
+    const passed = val === 'ok';
+    results[item.id] = { label: item.label, passed };
+    if(!passed) allPassed = false;
   });
+
+  if(unanswered > 0){
+    showToast('Please check all ' + unanswered + ' remaining items.');
+    return;
+  }
 
   const totalItems = CHECKLIST_ITEMS.length;
   const passedItems = Object.values(results).filter(r=>r.passed).length;
@@ -5485,12 +5537,12 @@ async function submitChecklist(){
 
   // Reset form
   CHECKLIST_ITEMS.forEach(item => {
-    const cb = document.getElementById('cl-'+item.id);
-    const box = document.getElementById('check-box-'+item.id);
-    const label = box?.closest('label');
-    if(cb) cb.checked = false;
-    if(box){ box.style.background=''; box.style.borderColor=''; box.innerHTML=''; }
-    if(label){ label.style.borderColor=''; label.style.background='var(--light)'; }
+    const input = document.getElementById('cl-'+item.id);
+    if(input) input.value = '';
+    const okBtn = document.getElementById('cl-ok-'+item.id);
+    const failBtn = document.getElementById('cl-fail-'+item.id);
+    if(okBtn){ okBtn.style.background='#fff'; okBtn.style.borderColor='var(--border)'; okBtn.style.color='#6B7280'; }
+    if(failBtn){ failBtn.style.background='#fff'; failBtn.style.borderColor='var(--border)'; failBtn.style.color='#6B7280'; }
   });
   document.getElementById('cl-notes').value = '';
   document.getElementById('cl-vehicle').value = '';

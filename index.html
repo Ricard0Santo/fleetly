@@ -1288,6 +1288,19 @@ tr:hover td{background:#f8f9fc}
               </select>
             </div>
           </div>
+          <div class="form-row col2">
+            <div class="fg">
+              <label>📸 Photos (optional)</label>
+              <input type="file" id="inc-photos" multiple accept="image/*" style="font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-family:Arial,sans-serif">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Select multiple photos if needed</div>
+            </div>
+            <div class="fg">
+              <label>📄 Signed Document (optional)</label>
+              <input type="file" id="inc-document" accept="image/*,application/pdf" style="font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-family:Arial,sans-serif">
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">Photo or PDF of signed document</div>
+            </div>
+          </div>
+          <div id="inc-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
           <div style="margin-top:12px">
             <button class="btn btn-primary" onclick="submitIncident()" id="inc-submit-btn">🚨 Submit Incident Report</button>
           </div>
@@ -5953,10 +5966,43 @@ async function submitIncident(){
   if(!description){ showToast('Please describe what happened.'); return; }
 
   const btn = document.getElementById('inc-submit-btn');
-  if(btn){ btn.disabled=true; btn.textContent='Submitting...'; }
+  if(btn){ btn.disabled=true; btn.textContent='Uploading...'; }
+
+  const companyId = currentDriver?.company_id || currentProfile?.company_id;
+  const incidentId = crypto.randomUUID();
+
+  // Upload photos
+  const photoUrls = [];
+  const photoFiles = document.getElementById('inc-photos')?.files;
+  if(photoFiles && photoFiles.length > 0){
+    for(let i=0; i<photoFiles.length; i++){
+      const file = photoFiles[i];
+      const path = `${companyId}/${incidentId}/photo_${i}_${Date.now()}.${file.name.split('.').pop()}`;
+      const {data:up, error:upErr} = await sb.storage.from('incidents').upload(path, file);
+      if(!upErr){
+        const {data:url} = sb.storage.from('incidents').getPublicUrl(path);
+        photoUrls.push(url.publicUrl);
+      }
+    }
+  }
+
+  // Upload document
+  let documentUrl = null;
+  const docFile = document.getElementById('inc-document')?.files[0];
+  if(docFile){
+    const path = `${companyId}/${incidentId}/document_${Date.now()}.${docFile.name.split('.').pop()}`;
+    const {error:docErr} = await sb.storage.from('incidents').upload(path, docFile);
+    if(!docErr){
+      const {data:url} = sb.storage.from('incidents').getPublicUrl(path);
+      documentUrl = url.publicUrl;
+    }
+  }
+
+  if(btn) btn.textContent = 'Saving...';
 
   const data = {
-    company_id: currentDriver?.company_id || currentProfile?.company_id,
+    id: incidentId,
+    company_id: companyId,
     driver_id: currentDriver?.id,
     vehicle_id: vehicleId || null,
     incident_type: type,
@@ -5966,7 +6012,9 @@ async function submitIncident(){
     description,
     injuries: document.getElementById('inc-injuries').value === 'true',
     police_report: document.getElementById('inc-police').value === 'true',
-    status: 'Open'
+    status: 'Open',
+    photo_urls: photoUrls.length > 0 ? photoUrls : null,
+    document_url: documentUrl
   };
 
   const {error} = await sb.from('incidents').insert(data);
@@ -5989,9 +6037,12 @@ async function submitIncident(){
   document.getElementById('inc-time').value = '';
   document.getElementById('inc-injuries').value = 'false';
   document.getElementById('inc-police').value = 'false';
+  document.getElementById('inc-photos').value = '';
+  document.getElementById('inc-document').value = '';
+  document.getElementById('inc-photo-preview').innerHTML = '';
 
   if(btn){ btn.disabled=false; btn.textContent='🚨 Submit Incident Report'; }
-  showToast('Incident reported! Admin has been notified. ✅');
+  showToast(photoUrls.length > 0 ? `Incident reported with ${photoUrls.length} photo(s)! ✅` : 'Incident reported! Admin notified. ✅');
   loadDriverIncidents();
 }
 
@@ -6087,7 +6138,15 @@ async function viewIncident(id){
         <div><span style="color:var(--muted);font-size:11px">POLICE REPORT</span><br>${i.police_report?'✅ Yes':'No'}</div>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">DESCRIPTION</div>
-      <div style="font-size:13px;line-height:1.6">${i.description}</div>
+      <div style="font-size:13px;line-height:1.6;margin-bottom:12px">${i.description}</div>
+      ${i.photo_urls && i.photo_urls.length > 0 ? `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">📸 PHOTOS (${i.photo_urls.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${i.photo_urls.map(url=>`<a href="${url}" target="_blank"><img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"></a>`).join('')}
+        </div>` : ''}
+      ${i.document_url ? `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700">📄 SIGNED DOCUMENT</div>
+        <a href="${i.document_url}" target="_blank" class="btn btn-secondary btn-sm">View Document</a>` : ''}
     </div>
   `;
   openModal('modal-incident');
@@ -6102,6 +6161,25 @@ async function saveIncidentStatus(){
   loadIncidents();
   showToast('Incident updated! ✅');
 }
+
+// Photo preview for incidents
+document.addEventListener('change', function(e){
+  if(e.target.id === 'inc-photos'){
+    const preview = document.getElementById('inc-photo-preview');
+    if(!preview) return;
+    preview.innerHTML = '';
+    Array.from(e.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        const img = document.createElement('img');
+        img.src = ev.target.result;
+        img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border)';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+});
 
 </script>
 

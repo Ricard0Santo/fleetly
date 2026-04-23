@@ -4566,6 +4566,10 @@ async function deleteSACompany(id){
 
 function resetSACompanyForm(){
   ['sa-company-id','sa-co-name','sa-co-email','sa-co-phone','sa-co-rnavt','sa-co-nif','sa-co-address','sa-co-login-email','sa-co-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Always show login section for new companies
+  const loginSection = document.getElementById('sa-co-login-section');
+  if(loginSection) loginSection.style.display = 'block';
+  document.getElementById('sa-company-modal-title').textContent = 'Add Company';;
   document.getElementById('sa-co-status').value='Active';
   document.getElementById('sa-company-modal-title').textContent='Add Company';
 }

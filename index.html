@@ -1698,9 +1698,18 @@ tr:hover td{background:#f8f9fc}
   <div class="modal">
     <div class="modal-title" id="view-msg-subject">Message</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px" id="view-msg-meta"></div>
-    <div style="background:var(--light);border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap" id="view-msg-body"></div>
+    <div style="background:var(--light);border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;margin-bottom:16px" id="view-msg-body"></div>
+    <!-- Reply section -->
+    <div id="reply-section" style="display:none">
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px">↩️ Reply</div>
+        <textarea id="reply-body" rows="4" style="font-family:Arial,sans-serif;font-size:13px;padding:10px;border:1.5px solid var(--border);border-radius:8px;width:100%;resize:vertical" placeholder="Write your reply..."></textarea>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-view-message')">Close</button>
+      <button class="btn btn-secondary" id="reply-toggle-btn" onclick="toggleReply()" style="display:none">↩️ Reply</button>
+      <button class="btn btn-primary" id="reply-send-btn" onclick="sendReply()" style="display:none">Send Reply</button>
     </div>
   </div>
 </div>
@@ -4192,16 +4201,83 @@ async function viewMessage(id){
   document.getElementById('view-msg-subject').textContent = m.subject;
   document.getElementById('view-msg-meta').textContent = 'From: ' + (m.sender_name||'Unknown') + ' · ' + new Date(m.created_at).toLocaleString('pt-PT');
   document.getElementById('view-msg-body').textContent = m.body;
+
+  // Store message data for reply
+  window._currentViewMsg = m;
+
+  // Show reply button only for received messages (not sent by current user)
+  const replyBtn = document.getElementById('reply-toggle-btn');
+  const replySection = document.getElementById('reply-section');
+  const replySendBtn = document.getElementById('reply-send-btn');
+  const replyBody = document.getElementById('reply-body');
+  if(replyBtn && m.sender_id !== currentUser?.id){
+    replyBtn.style.display = '';
+    replySendBtn.style.display = 'none';
+    if(replySection) replySection.style.display = 'none';
+    if(replyBody) replyBody.value = '';
+  } else {
+    if(replyBtn) replyBtn.style.display = 'none';
+    if(replySendBtn) replySendBtn.style.display = 'none';
+    if(replySection) replySection.style.display = 'none';
+  }
+
   // Always mark as read when opened
   if(!m.read){
     await sb.from('messages').update({read:true}).eq('id',id);
-    // Reload the appropriate inbox
     const role = currentProfile?.role;
     if(role==='company_admin') { loadAdminInbox(); loadMessageCount(); }
     else if(role==='driver') { loadDriverInbox(); loadDriverMessageCount(); }
     else if(role==='agency') { loadAgencyInbox(); loadAgencyMessageCount(); }
   }
   openModal('modal-view-message');
+}
+
+function toggleReply(){
+  const section = document.getElementById('reply-section');
+  const sendBtn = document.getElementById('reply-send-btn');
+  const toggleBtn = document.getElementById('reply-toggle-btn');
+  if(section.style.display === 'none'){
+    section.style.display = 'block';
+    sendBtn.style.display = '';
+    toggleBtn.textContent = '✕ Cancel';
+    document.getElementById('reply-body').focus();
+  } else {
+    section.style.display = 'none';
+    sendBtn.style.display = 'none';
+    toggleBtn.textContent = '↩️ Reply';
+  }
+}
+
+async function sendReply(){
+  const m = window._currentViewMsg;
+  if(!m) return;
+  const body = document.getElementById('reply-body').value.trim();
+  if(!body){ showToast('Please write a reply.'); return; }
+
+  const replyData = {
+    company_id: m.company_id,
+    agency_id: m.agency_id || null,
+    sender_id: currentUser.id,
+    sender_name: currentProfile?.full_name || currentDriver?.full_name || currentAgency?.name || currentUser.email,
+    sender_role: currentProfile?.role || 'driver',
+    recipient_id: m.sender_id,
+    recipient_type: m.sender_role === 'driver' ? 'driver' : m.sender_role === 'agency' ? 'agency' : 'admin',
+    subject: 'Re: ' + m.subject,
+    body,
+    read: false
+  };
+
+  const {error} = await sb.from('messages').insert(replyData);
+  if(error){ showToast('Error: '+error.message); return; }
+
+  closeModal('modal-view-message');
+  showToast('Reply sent! ✉️');
+
+  // Reload inbox
+  const role = currentProfile?.role;
+  if(role==='company_admin'){ loadAdminInbox(); showMsgTab('sent'); }
+  else if(role==='driver'){ loadDriverInbox(); showDriverMsgTab('sent'); }
+  else if(role==='agency'){ loadAgencyInbox(); showAgencyMsgTab('sent'); }
 }
 
 // ---- MESSAGE COUNTS ----

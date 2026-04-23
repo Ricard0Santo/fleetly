@@ -1715,9 +1715,18 @@ tr:hover td{background:#f8f9fc}
     <div class="form-row">
       <div class="fg"><label>Notes</label><input type="text" id="sa-ag-notes" placeholder="Optional..."></div>
     </div>
+    <div id="sa-ag-login-section">
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1E40AF;font-weight:600">
+        🔐 Agency Login Account — leave blank if adding login later
+      </div>
+      <div class="form-row col2">
+        <div class="fg"><label>Login email</label><input type="email" id="sa-ag-login-email" placeholder="agency@email.com"></div>
+        <div class="fg"><label>Temporary password</label><input type="text" id="sa-ag-password" placeholder="e.g. agency1234"></div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-sa-agency')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSAAgency()">Save Agency</button>
+      <button class="btn btn-primary" id="sa-ag-save-btn" onclick="saveSAAgency()">Save Agency</button>
     </div>
   </div>
 </div>
@@ -4598,6 +4607,8 @@ async function loadSAAgencies(){
 
 async function saveSAAgency(){
   const id = document.getElementById('sa-agency-id').value;
+  const loginEmail = document.getElementById('sa-ag-login-email')?.value.trim();
+  const password = document.getElementById('sa-ag-password')?.value.trim();
   const data = {
     name: document.getElementById('sa-ag-name').value.trim(),
     contact_name: document.getElementById('sa-ag-contact').value.trim(),
@@ -4606,12 +4617,52 @@ async function saveSAAgency(){
     notes: document.getElementById('sa-ag-notes').value.trim()
   };
   if(!data.name){ showToast('Please enter agency name.'); return; }
-  if(id){ await sb.from('agencies').update(data).eq('id',id); }
-  else { await sb.from('agencies').insert(data); }
+
+  const btn = document.getElementById('sa-ag-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Saving...'; }
+
+  if(id){
+    await sb.from('agencies').update(data).eq('id',id);
+  } else {
+    // Create agency first
+    const {data:newAg, error:agErr} = await sb.from('agencies').insert(data).select().single();
+    if(agErr){ showToast('Error: '+agErr.message); if(btn){btn.disabled=false;btn.textContent='Save Agency';} return; }
+
+    // Create login if email and password provided
+    if(loginEmail && password){
+      try {
+        const res = await fetch('/.netlify/functions/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: loginEmail,
+            password: password,
+            full_name: data.name,
+            company_id: null,
+            role: 'agency'
+          })
+        });
+        const userData = await res.json();
+        if(userData.id){
+          // Link profile to agency
+          await sb.from('agencies').update({profile_id: userData.id}).eq('id', newAg.id);
+          showToast('✅ Agency and login created!');
+        } else {
+          showToast('Agency created but login failed: ' + (userData.error||'unknown'));
+        }
+      } catch(e) {
+        showToast('Agency created but login failed: ' + e.message);
+      }
+    }
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='Save Agency'; }
   closeModal('modal-sa-agency');
   resetSAAgencyForm();
   loadSAAgencies();
-  showToast(id?'Agency updated!':'Agency added!');
+  loadSADashboard();
+  if(!id) showToast('Agency added! 🎉');
+  else showToast('Agency updated!');
 }
 
 async function editSAAgency(id){
@@ -4624,6 +4675,8 @@ async function editSAAgency(id){
   document.getElementById('sa-ag-phone').value = a.phone||'';
   document.getElementById('sa-ag-notes').value = a.notes||'';
   document.getElementById('sa-agency-modal-title').textContent = 'Edit Agency';
+  const agLoginSection = document.getElementById('sa-ag-login-section');
+  if(agLoginSection) agLoginSection.style.display = 'none';
   openModal('modal-sa-agency');
 }
 
@@ -4635,7 +4688,10 @@ async function deleteSAAgency(id){
 }
 
 function resetSAAgencyForm(){
-  ['sa-agency-id','sa-ag-name','sa-ag-contact','sa-ag-email','sa-ag-phone','sa-ag-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['sa-agency-id','sa-ag-name','sa-ag-contact','sa-ag-email','sa-ag-phone','sa-ag-notes','sa-ag-login-email','sa-ag-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const agLoginSection = document.getElementById('sa-ag-login-section');
+  if(agLoginSection) agLoginSection.style.display = 'block';
+  document.getElementById('sa-agency-modal-title').textContent = 'Add Agency';;
   document.getElementById('sa-agency-modal-title').textContent='Add Agency';
 }
 

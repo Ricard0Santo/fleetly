@@ -5635,18 +5635,28 @@ function applyDateRange(){
 // =============================================
 
 const CHECKLIST_ITEMS = [
-  { id: 'tyres', label: '🔵 Tyres & Pressure', icon: '🔵' },
-  { id: 'lights', label: '💡 Lights (front & rear)', icon: '💡' },
-  { id: 'mirrors', label: '🪞 Mirrors', icon: '🪞' },
-  { id: 'brakes', label: '🛑 Brakes', icon: '🛑' },
-  { id: 'fuel', label: '⛽ Fuel Level', icon: '⛽' },
-  { id: 'oil', label: '🛢️ Oil Level', icon: '🛢️' },
-  { id: 'windscreen', label: '🪟 Windscreen & Wipers', icon: '🪟' },
-  { id: 'firstaid', label: '🩺 First Aid Kit', icon: '🩺' },
-  { id: 'extinguisher', label: '🧯 Fire Extinguisher', icon: '🧯' },
-  { id: 'cleanliness', label: '✨ Vehicle Cleanliness', icon: '✨' },
-  { id: 'documents', label: '📄 Documents (insurance, inspection)', icon: '📄' },
-  { id: 'seatbelts', label: '🪢 Seatbelts', icon: '🪢' },
+  { id: 'tyres', label: '🔵 Tyres & Pressure' },
+  { id: 'lights', label: '💡 Lights (front & rear)' },
+  { id: 'mirrors', label: '🪞 Mirrors' },
+  { id: 'brakes', label: '🛑 Brakes' },
+  { id: 'fuel', label: '⛽ Fuel Level' },
+  { id: 'oil', label: '🛢️ Oil Level' },
+  { id: 'windscreen', label: '🪟 Windscreen & Wipers' },
+  { id: 'firstaid', label: '🩺 First Aid Kit' },
+  { id: 'extinguisher', label: '🧯 Fire Extinguisher' },
+  { id: 'cleanliness', label: '✨ Vehicle Cleanliness' },
+  { id: 'documents', label: '📄 Documents (insurance, inspection)' },
+  { id: 'seatbelts', label: '🪢 Seatbelts' },
+];
+
+const PERSONAL_ITEMS = [
+  { id: 'valid_licence', label: 'I have a current and valid licence to operate this vehicle.' },
+  { id: 'fit_for_duty', label: 'I am fit to perform my duties.' },
+  { id: 'not_fatigued', label: 'I am not fatigued or suffering from any medical condition that could affect my ability to drive.' },
+  { id: 'will_notify', label: 'If I am unfit before or during my trip, I will notify the supervisor and will not drive.' },
+  { id: 'passenger_limits', label: 'Number of passengers/cargo is within the maximum legal limits of the vehicle I operate.' },
+  { id: 'rest_24h', label: 'I have had 24 hours of continuous stationary rest in the last 7 days.' },
+  { id: 'no_alcohol', label: 'I have NOT consumed alcohol and/or drugs (prescription or otherwise) that could impair my ability to work and drive.' },
 ];
 
 async function initChecklist(){
@@ -5692,22 +5702,28 @@ async function showNewChecklist(){
   const container = document.getElementById('checklist-items');
   if(!container) return;
 
-  container.innerHTML = CHECKLIST_ITEMS.map(item => `
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+  function renderItem(item){
+    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px">
       <div style="display:flex;gap:5px;flex-shrink:0">
         <button onclick="setCheckItem('${item.id}', true, this)" id="cl-ok-${item.id}"
-          style="width:30px;height:28px;border-radius:5px;border:2px solid #D1D5DB;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#9CA3AF;transition:all 0.15s;display:flex;align-items:center;justify-content:center;padding:0">
-          ✓
-        </button>
+          style="width:30px;height:28px;border-radius:5px;border:2px solid #D1D5DB;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#9CA3AF;transition:all 0.15s;display:flex;align-items:center;justify-content:center;padding:0">✓</button>
         <button onclick="setCheckItem('${item.id}', false, this)" id="cl-fail-${item.id}"
-          style="width:30px;height:28px;border-radius:5px;border:2px solid #D1D5DB;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#9CA3AF;transition:all 0.15s;display:flex;align-items:center;justify-content:center;padding:0">
-          ✕
-        </button>
+          style="width:30px;height:28px;border-radius:5px;border:2px solid #D1D5DB;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#9CA3AF;transition:all 0.15s;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
       </div>
       <span style="font-size:13px;font-weight:500">${item.label}</span>
       <input type="hidden" id="cl-${item.id}" value="">
+    </div>`;
+  }
+
+  container.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;padding:6px 2px;margin-top:4px">🚗 Vehicle Check</div>
+    ${CHECKLIST_ITEMS.map(renderItem).join('')}
+    <div style="font-size:11px;font-weight:700;color:#0F1923;text-transform:uppercase;letter-spacing:1px;padding:10px 2px 6px">👤 Personal Declaration</div>
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;font-size:11px;color:#1E40AF;margin-bottom:8px">
+      By checking each item below, I confirm and declare the following statements to be true.
     </div>
-  `).join('');
+    ${PERSONAL_ITEMS.map(renderItem).join('')}
+  `;
 
   // Populate vehicle select
   const vSel = document.getElementById('cl-vehicle');
@@ -5771,16 +5787,17 @@ async function submitChecklist(){
   const results = {};
   let allPassed = true;
   let unanswered = 0;
-  CHECKLIST_ITEMS.forEach(item => {
+
+  [...CHECKLIST_ITEMS, ...PERSONAL_ITEMS].forEach(item => {
     const val = document.getElementById('cl-'+item.id)?.value;
     if(!val) unanswered++;
     const passed = val === 'ok';
-    results[item.id] = { label: item.label, passed };
+    results[item.id] = { label: item.label, passed, section: PERSONAL_ITEMS.find(p=>p.id===item.id) ? 'personal' : 'vehicle' };
     if(!passed) allPassed = false;
   });
 
   if(unanswered > 0){
-    showToast('Please check all ' + unanswered + ' remaining items.');
+    showToast('Please answer all ' + unanswered + ' remaining items.');
     return;
   }
 
@@ -5817,7 +5834,7 @@ async function submitChecklist(){
   }
 
   // Reset form
-  CHECKLIST_ITEMS.forEach(item => {
+  [...CHECKLIST_ITEMS, ...PERSONAL_ITEMS].forEach(item => {
     const input = document.getElementById('cl-'+item.id);
     if(input) input.value = '';
     const okBtn = document.getElementById('cl-ok-'+item.id);

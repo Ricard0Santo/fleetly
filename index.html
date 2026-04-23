@@ -385,7 +385,14 @@ tr:hover td{background:#f8f9fc}
                 <div onclick="setServicePeriodDropdown('year','This year')" class="period-option">This year</div>
                 <div onclick="setServicePeriodDropdown('all','All time')" class="period-option">All time</div>
                 <hr style="margin:4px 0;border:none;border-top:1px solid var(--border)">
-                <div onclick="document.getElementById('admin-cal-picker').showPicker?document.getElementById('admin-cal-picker').showPicker():document.getElementById('admin-cal-picker').click()" class="period-option">📅 Pick date</div>
+                <div style="padding:6px 14px">
+                  <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📅 Date Range</div>
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    <input type="date" id="f-from-pick" onchange="applyDateRange()" style="font-size:11px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+                    <span style="font-size:11px;color:var(--muted)">to</span>
+                    <input type="date" id="f-to-pick" onchange="applyDateRange()" style="font-size:11px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+                  </div>
+                </div>
               </div>
             </div>
             <input type="date" id="admin-cal-picker" onchange="pickAdminDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none">
@@ -5146,6 +5153,22 @@ document.addEventListener('click', function(e){
     if(dd) dd.style.display = 'none';
   }
 });
+
+function applyDateRange(){
+  const from = document.getElementById('f-from-pick').value;
+  const to = document.getElementById('f-to-pick').value;
+  if(!from || !to) return;
+  // Update hidden date inputs
+  document.getElementById('f-from').value = from;
+  document.getElementById('f-to').value = to;
+  // Update button label
+  const btn = document.getElementById('svc-period-more');
+  if(btn) btn.textContent = formatDate(from) + ' — ' + formatDate(to) + ' ▾';
+  // Remove active from period buttons
+  document.querySelectorAll('#page-services .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  loadServices();
+}
 
 </script>
 

@@ -1683,9 +1683,18 @@ tr:hover td{background:#f8f9fc}
     <div class="form-row">
       <div class="fg"><label>Address</label><input type="text" id="sa-co-address" placeholder="Full address"></div>
     </div>
+    <div id="sa-co-login-section">
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1E40AF;font-weight:600">
+        🔐 Admin Login Account — leave blank if adding login later
+      </div>
+      <div class="form-row col2">
+        <div class="fg"><label>Admin login email</label><input type="email" id="sa-co-login-email" placeholder="admin@company.com"></div>
+        <div class="fg"><label>Temporary password</label><input type="text" id="sa-co-password" placeholder="e.g. company1234"></div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-sa-company')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSACompany()">Save Company</button>
+      <button class="btn btn-primary" id="sa-co-save-btn" onclick="saveSACompany()">Save Company</button>
     </div>
   </div>
 </div>
@@ -3043,6 +3052,14 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-compose') populateComposeModal();
   if(id==='modal-agency') populateAgencyLinkSelect();
+  if(id==='modal-sa-company'){
+    // Show login section for new companies
+    if(!document.getElementById('sa-company-id').value){
+      const loginSection = document.getElementById('sa-co-login-section');
+      if(loginSection) loginSection.style.display = 'block';
+      document.getElementById('sa-company-modal-title').textContent = 'Add Company';
+    }
+  }
   if(id==='modal-price-rule'){
     // Populate agency dropdown
     const sel = document.getElementById('pr-agency');
@@ -4461,6 +4478,8 @@ async function loadSACompanies(){
 
 async function saveSACompany(){
   const id = document.getElementById('sa-company-id').value;
+  const loginEmail = document.getElementById('sa-co-login-email')?.value.trim();
+  const password = document.getElementById('sa-co-password')?.value.trim();
   const data = {
     name: document.getElementById('sa-co-name').value.trim(),
     email: document.getElementById('sa-co-email').value.trim(),
@@ -4471,12 +4490,53 @@ async function saveSACompany(){
     address: document.getElementById('sa-co-address').value.trim()
   };
   if(!data.name){ showToast('Please enter company name.'); return; }
-  if(id){ await sb.from('companies').update(data).eq('id',id); }
-  else { await sb.from('companies').insert(data); }
+
+  const btn = document.getElementById('sa-co-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Saving...'; }
+
+  let companyId = id;
+
+  if(id){
+    await sb.from('companies').update(data).eq('id',id);
+  } else {
+    // Create company first
+    const {data:newCo, error:coErr} = await sb.from('companies').insert(data).select().single();
+    if(coErr){ showToast('Error: '+coErr.message); if(btn){btn.disabled=false;btn.textContent='Save Company';} return; }
+    companyId = newCo.id;
+
+    // Create login if email and password provided
+    if(loginEmail && password){
+      try {
+        const res = await fetch('/.netlify/functions/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: loginEmail,
+            password: password,
+            full_name: data.name + ' Admin',
+            company_id: companyId,
+            role: 'company_admin'
+          })
+        });
+        const userData = await res.json();
+        if(userData.id){
+          showToast('✅ Company and admin login created!');
+        } else {
+          showToast('Company created but login failed: ' + (userData.error||'unknown'));
+        }
+      } catch(e) {
+        showToast('Company created but login failed: ' + e.message);
+      }
+    }
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='Save Company'; }
   closeModal('modal-sa-company');
   resetSACompanyForm();
   loadSACompanies();
-  showToast(id?'Company updated!':'Company added!');
+  loadSADashboard();
+  if(!id) showToast('Company added! 🎉');
+  else showToast('Company updated!');
 }
 
 async function editSACompany(id){
@@ -4491,6 +4551,9 @@ async function editSACompany(id){
   document.getElementById('sa-co-status').value = c.status||'Active';
   document.getElementById('sa-co-address').value = c.address||'';
   document.getElementById('sa-company-modal-title').textContent = 'Edit Company';
+  // Hide login section for edits
+  const loginSection = document.getElementById('sa-co-login-section');
+  if(loginSection) loginSection.style.display = 'none';
   openModal('modal-sa-company');
 }
 
@@ -4502,7 +4565,7 @@ async function deleteSACompany(id){
 }
 
 function resetSACompanyForm(){
-  ['sa-company-id','sa-co-name','sa-co-email','sa-co-phone','sa-co-rnavt','sa-co-nif','sa-co-address'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['sa-company-id','sa-co-name','sa-co-email','sa-co-phone','sa-co-rnavt','sa-co-nif','sa-co-address','sa-co-login-email','sa-co-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sa-co-status').value='Active';
   document.getElementById('sa-company-modal-title').textContent='Add Company';
 }

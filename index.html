@@ -301,6 +301,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-section">Services</div>
         <div class="nav-item" onclick="showPage('services')"><span class="nav-icon">🚗</span>Services</div>
         <div class="nav-item" onclick="showPage('checklists')"><span class="nav-icon">📋</span>Checklists</div>
+        <div class="nav-item" onclick="showPage('incidents')"><span class="nav-icon">🚨</span>Incidents</div>
         <div class="nav-item" onclick="showPage('approvals')"><span class="nav-icon">✅</span>Approvals <span id="approval-count-badge" style="background:#6B21A8;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('reports')"><span class="nav-icon">📈</span>Reports</div>
         <div class="nav-section">Management</div>
@@ -336,6 +337,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item" onclick="showPage('driver-add')"><span class="nav-icon">➕</span>Add Service</div>
         <div class="nav-item" onclick="showPage('driver-diesel')"><span class="nav-icon">⛽</span>My Diesel</div>
         <div class="nav-item" onclick="showPage('driver-checklist')"><span class="nav-icon">✅</span>Checklist</div>
+        <div class="nav-item" onclick="showPage('driver-incidents')"><span class="nav-icon">🚨</span>Incidents</div>
         <div class="nav-item" onclick="showPage('driver-messages')"><span class="nav-icon">✉️</span>Messages <span id="driver-msg-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('driver-profile')"><span class="nav-icon">👤</span>My Profile</div>
       </div>
@@ -881,6 +883,38 @@ tr:hover td{background:#f8f9fc}
         </div>
       </div>
 
+
+      <!-- ADMIN INCIDENTS -->
+      <div class="page" id="page-incidents">
+        <div class="page-title">🚨 Incident Log</div>
+        <div class="page-sub">All reported accidents and incidents</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <select id="inc-f-type" onchange="loadIncidents()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <option value="">All types</option>
+              <option>Accident</option><option>Breakdown</option><option>Near Miss</option>
+              <option>Theft</option><option>Vandalism</option><option>Other</option>
+            </select>
+            <select id="inc-f-status" onchange="loadIncidents()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <option value="">All statuses</option>
+              <option>Open</option><option>Under Review</option><option>Closed</option>
+            </select>
+          </div>
+          <div class="result-count" id="incidents-count"></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Date</th><th>Type</th><th>Driver</th><th>Vehicle</th><th>Location</th><th>Injuries</th><th>Police</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody id="incidents-body"></tbody>
+            </table>
+            <div class="empty" id="incidents-empty" style="display:none">No incidents reported.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- AGENCY DASHBOARD -->
       <div class="page" id="page-agency-dashboard">
         <div class="page-title">Agency Dashboard</div>
@@ -1198,6 +1232,71 @@ tr:hover td{background:#f8f9fc}
         <div class="card">
           <div class="card-title">Recent Checklists</div>
           <div id="checklist-history"><div class="empty">No checklists submitted yet.</div></div>
+        </div>
+      </div>
+
+
+      <!-- DRIVER INCIDENTS -->
+      <div class="page" id="page-driver-incidents">
+        <div class="page-title">🚨 Report Incident</div>
+        <div class="page-sub">Report any accident, breakdown or incident</div>
+
+        <div class="card">
+          <div class="card-title">New Incident Report</div>
+          <div class="form-row col2">
+            <div class="fg">
+              <label>Incident Type</label>
+              <select id="inc-type" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+                <option value="">Select type...</option>
+                <option value="Accident">🚗 Accident</option>
+                <option value="Breakdown">🔧 Breakdown</option>
+                <option value="Near Miss">⚠️ Near Miss</option>
+                <option value="Theft">🔓 Theft</option>
+                <option value="Vandalism">🪟 Vandalism</option>
+                <option value="Other">📋 Other</option>
+              </select>
+            </div>
+            <div class="fg"><label>Vehicle</label>
+              <select id="inc-vehicle" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+                <option value="">Select vehicle...</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg"><label>Date</label><input type="date" id="inc-date"></div>
+            <div class="fg"><label>Time</label><input type="time" id="inc-time"></div>
+          </div>
+          <div class="form-row">
+            <div class="fg"><label>Location / Address</label><input type="text" id="inc-location" placeholder="Where did it happen?"></div>
+          </div>
+          <div class="form-row">
+            <div class="fg"><label>Description</label><textarea id="inc-description" rows="4" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Describe what happened in detail..."></textarea></div>
+          </div>
+          <div class="form-row col2">
+            <div class="fg">
+              <label>Any injuries?</label>
+              <select id="inc-injuries" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+                <option value="false">No injuries</option>
+                <option value="true">Yes — injuries reported</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Police report filed?</label>
+              <select id="inc-police" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" onclick="submitIncident()" id="inc-submit-btn">🚨 Submit Incident Report</button>
+          </div>
+        </div>
+
+        <!-- Previous incidents -->
+        <div class="card">
+          <div class="card-title">My Incident Reports</div>
+          <div id="driver-incidents-list"><div class="empty">No incidents reported.</div></div>
         </div>
       </div>
 
@@ -1871,6 +1970,35 @@ tr:hover td{background:#f8f9fc}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-price-rule')">Cancel</button>
       <button class="btn btn-primary" onclick="savePriceRule()">Save Rule</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Incident Detail Modal -->
+<div class="modal-overlay" id="modal-incident">
+  <div class="modal">
+    <div class="modal-title">🚨 Incident Report</div>
+    <input type="hidden" id="inc-modal-id">
+    <div id="inc-modal-details"></div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Status</label>
+        <select id="inc-modal-status" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%">
+          <option value="Open">🔴 Open</option>
+          <option value="Under Review">🟡 Under Review</option>
+          <option value="Closed">🟢 Closed</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Admin Notes</label>
+        <textarea id="inc-modal-notes" rows="3" style="font-family:Arial,sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;width:100%;resize:vertical" placeholder="Add notes or actions taken..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-incident')">Close</button>
+      <button class="btn btn-primary" onclick="saveIncidentStatus()">Save</button>
     </div>
   </div>
 </div>
@@ -3099,6 +3227,8 @@ function showPage(page){
   }
   if(page==='price-rules'){ loadPriceRules(); }
   if(page==='checklists'){ loadChecklists(); }
+  if(page==='incidents'){ loadIncidents(); }
+  if(page==='driver-incidents'){ initDriverIncidents(); }
   if(page==='sa-dashboard') loadSADashboard();
   if(page==='sa-companies') loadSACompanies();
   if(page==='sa-agencies') loadSAAgencies();
@@ -5206,6 +5336,9 @@ function showMobileNav(role){
       <div class="mob-nav-item" id="mob-d-check" onclick="showPage('driver-checklist');setMobActive('mob-d-check')">
         <span class="mob-nav-icon">✅</span>Check
       </div>
+      <div class="mob-nav-item" id="mob-d-inc" onclick="showPage('driver-incidents');setMobActive('mob-d-inc')">
+        <span class="mob-nav-icon">🚨</span>Incident
+      </div>
       <div class="mob-nav-item" id="mob-d-msg" onclick="showPage('driver-messages');setMobActive('mob-d-msg')">
         <span class="mob-nav-icon">✉️</span>Messages
       </div>
@@ -5781,6 +5914,193 @@ function applyDriverDateRange(){
   const dd = document.getElementById('driver-period-dropdown');
   if(dd) dd.style.display = 'none';
   loadDriverServices(from, to);
+}
+
+// =============================================
+// INCIDENTS
+// =============================================
+
+async function initDriverIncidents(){
+  // Set today's date
+  document.getElementById('inc-date').value = today();
+
+  // Load vehicles
+  const vSel = document.getElementById('inc-vehicle');
+  if(vSel){
+    vSel.innerHTML = '<option value="">Select vehicle...</option>';
+    const companyId = currentDriver?.company_id || currentProfile?.company_id;
+    if(companyId){
+      const {data:vehs} = await sb.from('vehicles').select('*').eq('company_id', companyId).order('plate');
+      (vehs||[]).forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.id;
+        o.textContent = v.plate + (v.make ? ' — '+v.make : '');
+        vSel.appendChild(o);
+      });
+    }
+  }
+  loadDriverIncidents();
+}
+
+async function submitIncident(){
+  const type = document.getElementById('inc-type').value;
+  const vehicleId = document.getElementById('inc-vehicle').value;
+  const date = document.getElementById('inc-date').value;
+  const description = document.getElementById('inc-description').value.trim();
+
+  if(!type){ showToast('Please select incident type.'); return; }
+  if(!date){ showToast('Please select a date.'); return; }
+  if(!description){ showToast('Please describe what happened.'); return; }
+
+  const btn = document.getElementById('inc-submit-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Submitting...'; }
+
+  const data = {
+    company_id: currentDriver?.company_id || currentProfile?.company_id,
+    driver_id: currentDriver?.id,
+    vehicle_id: vehicleId || null,
+    incident_type: type,
+    incident_date: date,
+    incident_time: document.getElementById('inc-time').value || null,
+    location: document.getElementById('inc-location').value.trim() || null,
+    description,
+    injuries: document.getElementById('inc-injuries').value === 'true',
+    police_report: document.getElementById('inc-police').value === 'true',
+    status: 'Open'
+  };
+
+  const {error} = await sb.from('incidents').insert(data);
+  if(error){ showToast('Error: '+error.message); if(btn){btn.disabled=false;btn.textContent='🚨 Submit Incident Report';} return; }
+
+  // Notify admin
+  await sb.from('notifications').insert({
+    company_id: data.company_id,
+    title: '🚨 Incident Reported — ' + type,
+    message: (currentDriver?.full_name||'Driver') + ' reported: ' + description.substring(0,100),
+    type: 'service_submitted',
+    read: false
+  });
+
+  // Reset form
+  ['inc-type','inc-vehicle','inc-location','inc-description'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('inc-date').value = today();
+  document.getElementById('inc-time').value = '';
+  document.getElementById('inc-injuries').value = 'false';
+  document.getElementById('inc-police').value = 'false';
+
+  if(btn){ btn.disabled=false; btn.textContent='🚨 Submit Incident Report'; }
+  showToast('Incident reported! Admin has been notified. ✅');
+  loadDriverIncidents();
+}
+
+async function loadDriverIncidents(){
+  if(!currentDriver) return;
+  const {data} = await sb.from('incidents')
+    .select('*, vehicles(plate)')
+    .eq('driver_id', currentDriver.id)
+    .order('incident_date', {ascending: false});
+
+  const el = document.getElementById('driver-incidents-list');
+  if(!data || !data.length){ el.innerHTML='<div class="empty">No incidents reported.</div>'; return; }
+
+  const typeColors = { Accident:'#EF4444', Breakdown:'#F97316', 'Near Miss':'#EAB308', Theft:'#8B5CF6', Vandalism:'#EC4899', Other:'#6B7280' };
+  el.innerHTML = data.map(i => `
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="background:${typeColors[i.incident_type]||'#6B7280'};color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${i.incident_type}</span>
+          <span style="font-size:12px;color:var(--muted)">${formatDate(i.incident_date)} ${i.incident_time||''}</span>
+        </div>
+        <span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:${i.status==='Open'?'#FEE2E2':i.status==='Under Review'?'#FEF9C3':'#DCFCE7'};color:${i.status==='Open'?'#991B1B':i.status==='Under Review'?'#92400E':'#166534'}">${i.status}</span>
+      </div>
+      <div style="font-size:13px;color:var(--dark);margin-bottom:6px">${i.description}</div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--muted)">
+        ${i.vehicles?.plate?`<span>🚗 ${i.vehicles.plate}</span>`:''}
+        ${i.location?`<span>📍 ${i.location}</span>`:''}
+        ${i.injuries?'<span style="color:#EF4444;font-weight:700">🩺 Injuries reported</span>':''}
+        ${i.police_report?'<span style="color:#3B82F6;font-weight:700">👮 Police report filed</span>':''}
+      </div>
+      ${i.admin_notes?`<div style="margin-top:8px;background:#F0F4FB;border-radius:6px;padding:8px 10px;font-size:12px;color:#1E40AF">📝 Admin: ${i.admin_notes}</div>`:''}
+    </div>
+  `).join('');
+}
+
+async function loadIncidents(){
+  const typeFilter = document.getElementById('inc-f-type')?.value;
+  const statusFilter = document.getElementById('inc-f-status')?.value;
+
+  let query = sb.from('incidents')
+    .select('*, vehicles(plate), drivers(full_name)')
+    .eq('company_id', currentProfile.company_id)
+    .order('incident_date', {ascending: false});
+
+  if(typeFilter) query = query.eq('incident_type', typeFilter);
+  if(statusFilter) query = query.eq('status', statusFilter);
+
+  const {data} = await query;
+  const rows = data||[];
+  document.getElementById('incidents-count').textContent = rows.length + ' incident' + (rows.length!==1?'s':'');
+
+  const tbody = document.getElementById('incidents-body');
+  const empty = document.getElementById('incidents-empty');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+
+  const typeColors = { Accident:'#EF4444', Breakdown:'#F97316', 'Near Miss':'#EAB308', Theft:'#8B5CF6', Vandalism:'#EC4899', Other:'#6B7280' };
+  tbody.innerHTML = rows.map(i => `<tr style="cursor:pointer" onclick="viewIncident('${i.id}')">
+    <td>${formatDate(i.incident_date)} ${i.incident_time||''}</td>
+    <td><span style="background:${typeColors[i.incident_type]||'#6B7280'};color:#fff;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${i.incident_type}</span></td>
+    <td><strong>${i.drivers?.full_name||'—'}</strong></td>
+    <td>${i.vehicles?.plate||'—'}</td>
+    <td style="font-size:12px">${i.location||'—'}</td>
+    <td>${i.injuries?'<span style="color:#EF4444;font-weight:700">Yes</span>':'No'}</td>
+    <td>${i.police_report?'<span style="color:#3B82F6;font-weight:700">Yes</span>':'No'}</td>
+    <td><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${i.status==='Open'?'#FEE2E2':i.status==='Under Review'?'#FEF9C3':'#DCFCE7'};color:${i.status==='Open'?'#991B1B':i.status==='Under Review'?'#92400E':'#166534'}">${i.status}</span></td>
+    <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewIncident('${i.id}')">View</button></td>
+  </tr>`).join('');
+}
+
+async function viewIncident(id){
+  const {data:i} = await sb.from('incidents')
+    .select('*, vehicles(plate,make), drivers(full_name)')
+    .eq('id',id).single();
+  if(!i) return;
+
+  document.getElementById('inc-modal-id').value = i.id;
+  document.getElementById('inc-modal-status').value = i.status;
+  document.getElementById('inc-modal-notes').value = i.admin_notes||'';
+
+  const typeColors = { Accident:'#EF4444', Breakdown:'#F97316', 'Near Miss':'#EAB308', Theft:'#8B5CF6', Vandalism:'#EC4899', Other:'#6B7280' };
+  document.getElementById('inc-modal-details').innerHTML = `
+    <div style="background:var(--light);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <span style="background:${typeColors[i.incident_type]||'#6B7280'};color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${i.incident_type}</span>
+        <span style="font-size:12px;color:var(--muted)">${formatDate(i.incident_date)} ${i.incident_time||''}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin-bottom:12px">
+        <div><span style="color:var(--muted);font-size:11px">DRIVER</span><br><strong>${i.drivers?.full_name||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">VEHICLE</span><br><strong>${i.vehicles?.plate||'—'} ${i.vehicles?.make||''}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">LOCATION</span><br>${i.location||'—'}</div>
+        <div><span style="color:var(--muted);font-size:11px">INJURIES</span><br><span style="${i.injuries?'color:#EF4444;font-weight:700':''}">${i.injuries?'⚠️ Yes':'No'}</span></div>
+        <div><span style="color:var(--muted);font-size:11px">POLICE REPORT</span><br>${i.police_report?'✅ Yes':'No'}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">DESCRIPTION</div>
+      <div style="font-size:13px;line-height:1.6">${i.description}</div>
+    </div>
+  `;
+  openModal('modal-incident');
+}
+
+async function saveIncidentStatus(){
+  const id = document.getElementById('inc-modal-id').value;
+  const status = document.getElementById('inc-modal-status').value;
+  const notes = document.getElementById('inc-modal-notes').value.trim();
+  await sb.from('incidents').update({status, admin_notes: notes||null}).eq('id',id);
+  closeModal('modal-incident');
+  loadIncidents();
+  showToast('Incident updated! ✅');
 }
 
 </script>

@@ -393,14 +393,32 @@ tr:hover td{background:#f8f9fc}
             <!-- Filter dropdowns -->
             <select id="f-agency" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
             <select id="f-driver" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All drivers</option></select>
-            <select id="f-svc-type" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-              <option value="">All services</option>
-              <option>Arrival (Airport)</option><option>Departure (Airport)</option><option>Pick Up</option><option>Half Day Tour</option><option>Full Day Tour</option><option>Day Service</option>
-            </select>
-            <select id="f-status" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-              <option value="">All statuses</option>
-              <option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>Pending Approval</option>
-            </select>
+            <div style="position:relative;display:inline-block">
+              <button id="svc-filter-btn" onclick="toggleFilterDropdown()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif;background:#fff;cursor:pointer;display:flex;align-items:center;gap:6px">
+                <span id="svc-filter-label">All filters</span> ▾
+              </button>
+              <div id="svc-filter-dropdown" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:200;min-width:200px;padding:8px 0;margin-top:4px">
+                <div style="padding:4px 14px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px">Service Type</div>
+                <div onclick="setServiceFilter('type','','All services')" class="period-option">All services</div>
+                <div onclick="setServiceFilter('type','Arrival (Airport)','Arrival (Airport)')" class="period-option">Arrival (Airport)</div>
+                <div onclick="setServiceFilter('type','Departure (Airport)','Departure (Airport)')" class="period-option">Departure (Airport)</div>
+                <div onclick="setServiceFilter('type','Pick Up','Pick Up')" class="period-option">Pick Up</div>
+                <div onclick="setServiceFilter('type','Half Day Tour','Half Day Tour')" class="period-option">Half Day Tour</div>
+                <div onclick="setServiceFilter('type','Full Day Tour','Full Day Tour')" class="period-option">Full Day Tour</div>
+                <div onclick="setServiceFilter('type','Day Service','Day Service')" class="period-option">Day Service</div>
+                <hr style="margin:6px 0;border:none;border-top:1px solid var(--border)">
+                <div style="padding:4px 14px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px">Status</div>
+                <div onclick="setServiceFilter('status','','All statuses')" class="period-option">All statuses</div>
+                <div onclick="setServiceFilter('status','Pending','Pending')" class="period-option">🟡 Pending</div>
+                <div onclick="setServiceFilter('status','Confirmed','Confirmed')" class="period-option">🔵 Confirmed</div>
+                <div onclick="setServiceFilter('status','Completed','Completed')" class="period-option">🟢 Completed</div>
+                <div onclick="setServiceFilter('status','Cancelled','Cancelled')" class="period-option">🔴 Cancelled</div>
+                <div onclick="setServiceFilter('status','Pending Approval','Pending Approval')" class="period-option">🟣 Pending Approval</div>
+              </div>
+            </div>
+            <!-- Hidden selects for actual filtering -->
+            <select id="f-svc-type" onchange="loadServices()" style="display:none"></select>
+            <select id="f-status" onchange="loadServices()" style="display:none"><option value=""></option><option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>Pending Approval</option></select>
 
             <!-- Actions -->
             <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -5095,6 +5113,36 @@ function setServicePeriodDropdown(period, label){
 document.addEventListener('click', function(e){
   if(!e.target.closest('#svc-period-dropdown') && !e.target.closest('#svc-period-more')){
     const dd = document.getElementById('svc-period-dropdown');
+    if(dd) dd.style.display = 'none';
+  }
+});
+
+function toggleFilterDropdown(){
+  const dd = document.getElementById('svc-filter-dropdown');
+  if(dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function setServiceFilter(type, value, label){
+  if(type === 'type'){
+    const el = document.getElementById('f-svc-type');
+    if(el){ el.innerHTML = `<option value="${value}">${label}</option>`; }
+  } else {
+    const el = document.getElementById('f-status');
+    if(el) el.value = value;
+  }
+  // Update button label
+  const btn = document.getElementById('svc-filter-label');
+  if(btn) btn.textContent = value ? label : 'All filters';
+  // Close dropdown
+  const dd = document.getElementById('svc-filter-dropdown');
+  if(dd) dd.style.display = 'none';
+  loadServices();
+}
+
+// Close filter dropdown when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#svc-filter-dropdown') && !e.target.closest('#svc-filter-btn')){
+    const dd = document.getElementById('svc-filter-dropdown');
     if(dd) dd.style.display = 'none';
   }
 });

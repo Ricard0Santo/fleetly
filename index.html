@@ -141,6 +141,8 @@ tr:hover td{background:#f8f9fc}
 .approval-card{background:#fdf4ff;border:1.5px solid #e9d5ff;border-radius:10px;padding:16px;margin-bottom:12px}
 .approval-card-title{font-size:13px;font-weight:700;color:#6B21A8;margin-bottom:8px}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:var(--white);padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;display:none;border-left:4px solid var(--teal)}
+.period-option{padding:8px 14px;font-size:12px;cursor:pointer;color:var(--dark);white-space:nowrap}
+.period-option:hover{background:var(--light);color:var(--teal)}
 @media(max-width:768px){
   /* Layout */
   .sidebar{display:none}
@@ -367,44 +369,50 @@ tr:hover td{background:#f8f9fc}
         <div class="page-title">Services</div>
         <div class="page-sub">Manage all transport services</div>
         <div class="card">
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <div class="period-btns">
-                <button class="pbtn" onclick="setServicePeriod(this,'today')">Today</button>
-                <button class="pbtn" onclick="setServicePeriod(this,'tomorrow')">Tomorrow</button>
-                <button class="pbtn" onclick="setServicePeriod(this,'week')">This week</button>
-                <button class="pbtn on" onclick="setServicePeriod(this,'month')">This month</button>
-                <button class="pbtn" onclick="setServicePeriod(this,'q')">3 months</button>
-                <button class="pbtn" onclick="setServicePeriod(this,'year')">This year</button>
-                <button class="pbtn" onclick="setServicePeriod(this,'all')">All time</button>
-                <span style="position:relative;display:inline-block">
-                  <button class="pbtn" onclick="document.getElementById('admin-cal-picker').showPicker?document.getElementById('admin-cal-picker').showPicker():document.getElementById('admin-cal-picker').click()" style="padding:6px 10px">📅 Pick date</button>
-                  <input type="date" id="admin-cal-picker" onchange="pickAdminDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;top:0;left:0;pointer-events:none">
-                </span>
+          <!-- SERVICES TOOLBAR - Clean Version -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">
+            <!-- Period buttons - Today, Tomorrow, More dropdown -->
+            <button class="pbtn" onclick="setServicePeriod(this,'today')">Today</button>
+            <button class="pbtn" onclick="setServicePeriod(this,'tomorrow')">Tomorrow</button>
+            <div style="position:relative;display:inline-block">
+              <button class="pbtn on" id="svc-period-more" onclick="togglePeriodDropdown()" style="padding:6px 12px">
+                This month ▾
+              </button>
+              <div id="svc-period-dropdown" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:200;min-width:140px;padding:4px 0;margin-top:4px">
+                <div onclick="setServicePeriodDropdown('week','This week')" class="period-option">This week</div>
+                <div onclick="setServicePeriodDropdown('month','This month')" class="period-option">This month</div>
+                <div onclick="setServicePeriodDropdown('q','3 months')" class="period-option">3 months</div>
+                <div onclick="setServicePeriodDropdown('year','This year')" class="period-option">This year</div>
+                <div onclick="setServicePeriodDropdown('all','All time')" class="period-option">All time</div>
+                <hr style="margin:4px 0;border:none;border-top:1px solid var(--border)">
+                <div onclick="document.getElementById('admin-cal-picker').showPicker?document.getElementById('admin-cal-picker').showPicker():document.getElementById('admin-cal-picker').click()" class="period-option">📅 Pick date</div>
               </div>
             </div>
-            <div class="toolbar-right">
+            <input type="date" id="admin-cal-picker" onchange="pickAdminDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none">
+
+            <!-- Filter dropdowns -->
+            <select id="f-agency" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
+            <select id="f-driver" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All drivers</option></select>
+            <select id="f-svc-type" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <option value="">All services</option>
+              <option>Arrival (Airport)</option><option>Departure (Airport)</option><option>Pick Up</option><option>Half Day Tour</option><option>Full Day Tour</option><option>Day Service</option>
+            </select>
+            <select id="f-status" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
+              <option value="">All statuses</option>
+              <option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>Pending Approval</option>
+            </select>
+
+            <!-- Actions -->
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <div class="result-count" id="svc-count"></div>
               <button class="btn btn-primary btn-sm" onclick="openModal('modal-service')">+ Add Service</button>
               <button class="btn btn-export btn-sm" onclick="exportServices()">Export Excel</button>
             </div>
           </div>
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <select id="f-agency" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All agencies</option></select>
-              <select id="f-driver" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif"><option value="">All drivers</option></select>
-              <select id="f-svc-type" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-                <option value="">All services</option>
-                <option>Arrival (Airport)</option><option>Departure (Airport)</option><option>Pick Up</option><option>Half Day Tour</option><option>Full Day Tour</option><option>Day Service</option>
-              </select>
-              <select id="f-status" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-                <option value="">All statuses</option>
-                <option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>Pending Approval</option>
-              </select>
-              <input type="date" id="f-from" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-              <span style="font-size:12px;color:var(--muted)">to</span>
-              <input type="date" id="f-to" onchange="loadServices()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Arial,sans-serif">
-            </div>
-            <div class="result-count" id="svc-count"></div>
+          <!-- Hidden date inputs for period -->
+          <div style="display:none">
+            <input type="date" id="f-from" onchange="loadServices()">
+            <input type="date" id="f-to" onchange="loadServices()">
           </div>
           <div class="tbl-wrap">
             <table>
@@ -1980,6 +1988,9 @@ function getPeriodDates(p){
 function setServicePeriod(btn,p){
   document.querySelectorAll('#page-services .pbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  // Reset more button label
+  const moreBtn = document.getElementById('svc-period-more');
+  if(moreBtn) moreBtn.textContent = 'More ▾';
   const d=getPeriodDates(p);
   document.getElementById('f-from').value=d.from;
   document.getElementById('f-to').value=d.to;
@@ -5057,6 +5068,36 @@ function applyLanguage(){
     if(pageId === 'driver-home') setDriverPeriodByName('month');
   }
 }
+
+function togglePeriodDropdown(){
+  const dd = document.getElementById('svc-period-dropdown');
+  if(dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function setServicePeriodDropdown(period, label){
+  // Update button label
+  const btn = document.getElementById('svc-period-more');
+  if(btn) btn.textContent = label + ' ▾';
+  // Remove active from Today/Tomorrow buttons
+  document.querySelectorAll('#page-services .pbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  // Close dropdown
+  const dd = document.getElementById('svc-period-dropdown');
+  if(dd) dd.style.display = 'none';
+  // Set dates and load
+  const d = getPeriodDates(period);
+  document.getElementById('f-from').value = d.from;
+  document.getElementById('f-to').value = d.to;
+  loadServices();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#svc-period-dropdown') && !e.target.closest('#svc-period-more')){
+    const dd = document.getElementById('svc-period-dropdown');
+    if(dd) dd.style.display = 'none';
+  }
+});
 
 </script>
 

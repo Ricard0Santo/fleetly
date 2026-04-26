@@ -699,6 +699,7 @@ tr:hover td{background:#f8f9fc}
               <option>Rent</option><option>Salaries</option><option>Marketing</option><option>Other</option>
             </select>
             <button class="btn btn-primary btn-sm" onclick="openModal('modal-company-cost')">+ Add Cost</button>
+            <button class="btn btn-export btn-sm" onclick="exportCompanyCosts()">📥 Full Accounting Export</button>
           </div>
         </div>
         <div class="metrics" id="cc-metrics"></div>
@@ -4242,30 +4243,154 @@ function toggleVehicleDetail(plate){
 async function exportVehicleCosts(){
   const rows = window._vehicleSummaryData || [];
   if(!rows.length){ showToast('No data to export.'); return; }
-  const wb = XLSX.utils.book_new();
-  const data = [
-    ['Fleetly — Vehicle Cost Summary'],
-    ['Period:', byVehicleFrom + ' to ' + byVehicleTo],
-    ['Exported:', new Date().toLocaleDateString('pt-PT')],
-    [],
-    ['Vehicle','Make','Model','Diesel (€)','Mechanic (€)','Insurance (€)','Inspection (€)','Total (€)']
+
+  const sep = '\t';
+  const period = (byVehicleFrom||'all') + ' to ' + (byVehicleTo||'all');
+  const tsvRows = [
+    'Fleetly — Vehicle Cost Summary',
+    'Period:\t' + period,
+    'Exported:\t' + new Date().toLocaleDateString('pt-PT'),
+    '',
+    ['Vehicle','Make','Model','Diesel (€)','Mechanic (€)','Insurance (€)','Inspection (€)','Total (€)'].join(sep)
   ];
+
+  let td=0, tm=0, ti=0, tn=0;
   rows.sort((a,b)=>(b.diesel+b.mechanic+b.insurance+b.inspection)-(a.diesel+a.mechanic+a.insurance+a.inspection))
     .forEach(r=>{
       const total = r.diesel+r.mechanic+r.insurance+r.inspection;
-      data.push([r.plate, r.make, r.model, parseFloat(r.diesel.toFixed(2)), parseFloat(r.mechanic.toFixed(2)), parseFloat(r.insurance.toFixed(2)), parseFloat(r.inspection.toFixed(2)), parseFloat(total.toFixed(2))]);
+      td+=r.diesel; tm+=r.mechanic; ti+=r.insurance; tn+=r.inspection;
+      tsvRows.push([r.plate,r.make||'',r.model||'',r.diesel.toFixed(2),r.mechanic.toFixed(2),r.insurance.toFixed(2),r.inspection.toFixed(2),total.toFixed(2)].join(sep));
     });
-  // Totals row
-  const td = rows.reduce((s,r)=>s+r.diesel,0);
-  const tm = rows.reduce((s,r)=>s+r.mechanic,0);
-  const ti = rows.reduce((s,r)=>s+r.insurance,0);
-  const tn = rows.reduce((s,r)=>s+r.inspection,0);
-  data.push([]);
-  data.push(['TOTAL','','',parseFloat(td.toFixed(2)),parseFloat(tm.toFixed(2)),parseFloat(ti.toFixed(2)),parseFloat(tn.toFixed(2)),parseFloat((td+tm+ti+tn).toFixed(2))]);
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{wch:14},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
-  XLSX.utils.book_append_sheet(wb, 'By Vehicle', ws);
-  XLSX.writeFile(wb, 'Fleetly_VehicleCosts_'+byVehicleFrom+'_to_'+byVehicleTo+'.xlsx');
+
+  tsvRows.push('');
+  tsvRows.push(['TOTAL','','',td.toFixed(2),tm.toFixed(2),ti.toFixed(2),tn.toFixed(2),(td+tm+ti+tn).toFixed(2)].join(sep));
+
+  const blob = new Blob(['\uFEFF'+tsvRows.join('\n')], {type:'text/tab-separated-values;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Fleetly_VehicleCosts_' + (byVehicleFrom||'all') + '_to_' + (byVehicleTo||'all') + '.tsv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Vehicle costs exported! ✅');
+}
+
+async function exportCompanyCosts(){
+  try {
+    showToast('Preparing accounting export...');
+    const companyId = currentProfile.company_id;
+    const now = new Date().toLocaleDateString('pt-PT');
+
+    // Fetch company costs
+    const {data:cc} = await sb.from('company_costs').select('*')
+      .eq('company_id', companyId).order('date', {ascending:false});
+
+    // Fetch vehicle costs (diesel, mechanic, insurance, inspection)
+    const {data:diesel} = await sb.from('diesel_records').select('*, vehicles(plate,make)')
+      .eq('company_id', companyId).order('date', {ascending:false});
+    const {data:mechanic} = await sb.from('mechanic_records').select('*, vehicles(plate,make)')
+      .eq('company_id', companyId).order('date', {ascending:false});
+    const {data:insurance} = await sb.from('insurance_records').select('*, vehicles(plate,make)')
+      .eq('company_id', companyId).order('date', {ascending:false});
+    const {data:inspection} = await sb.from('inspection_records').select('*, vehicles(plate,make)')
+      .eq('company_id', companyId).order('date', {ascending:false});
+
+    const sep = '\t';
+    const tsvRows = [
+      'Fleetly — Full Company Accounting Export',
+      'Exported:\t' + now,
+      '',
+      '══════════════════════════════════════',
+      'COMPANY COSTS',
+      '══════════════════════════════════════',
+      ['Date','Category','Description','Amount (€)','Recurring','Notes'].join(sep)
+    ];
+
+    let totalCC = 0;
+    (cc||[]).forEach(c => {
+      totalCC += parseFloat(c.cost||0);
+      tsvRows.push([c.date||'',c.category||'',c.description||'',parseFloat(c.cost||0).toFixed(2),c.recurring?'Yes':'No',c.notes||''].join(sep));
+    });
+    tsvRows.push('');
+    tsvRows.push(['COMPANY COSTS TOTAL','','',totalCC.toFixed(2),'',''].join(sep));
+
+    // DIESEL
+    tsvRows.push('');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push('VEHICLE COSTS — DIESEL');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push(['Date','Vehicle','Litres','Cost (€)','Mileage','Notes'].join(sep));
+    let totalDiesel = 0;
+    (diesel||[]).forEach(d => {
+      totalDiesel += parseFloat(d.cost||0);
+      tsvRows.push([d.date||'',d.vehicles?.plate||'',d.litres||'',parseFloat(d.cost||0).toFixed(2),d.mileage||'',d.notes||''].join(sep));
+    });
+    tsvRows.push(['DIESEL TOTAL','','',totalDiesel.toFixed(2),'',''].join(sep));
+
+    // MECHANIC
+    tsvRows.push('');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push('VEHICLE COSTS — MECHANIC');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push(['Date','Vehicle','Description','Cost (€)','Garage','Notes'].join(sep));
+    let totalMechanic = 0;
+    (mechanic||[]).forEach(m => {
+      totalMechanic += parseFloat(m.cost||0);
+      tsvRows.push([m.date||'',m.vehicles?.plate||'',m.description||'',parseFloat(m.cost||0).toFixed(2),m.garage||'',m.notes||''].join(sep));
+    });
+    tsvRows.push(['MECHANIC TOTAL','','',totalMechanic.toFixed(2),'',''].join(sep));
+
+    // INSURANCE
+    tsvRows.push('');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push('VEHICLE COSTS — INSURANCE');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push(['Vehicle','Provider','Cost (€)','Start Date','Expiry Date','Notes'].join(sep));
+    let totalInsurance = 0;
+    (insurance||[]).forEach(i => {
+      totalInsurance += parseFloat(i.cost||0);
+      tsvRows.push([i.vehicles?.plate||'',i.provider||'',parseFloat(i.cost||0).toFixed(2),i.start_date||'',i.expiry_date||'',i.notes||''].join(sep));
+    });
+    tsvRows.push(['INSURANCE TOTAL','','',totalInsurance.toFixed(2),'',''].join(sep));
+
+    // INSPECTION
+    tsvRows.push('');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push('VEHICLE COSTS — INSPECTION');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push(['Vehicle','Date','Cost (€)','Next Due','Notes'].join(sep));
+    let totalInspection = 0;
+    (inspection||[]).forEach(i => {
+      totalInspection += parseFloat(i.cost||0);
+      tsvRows.push([i.vehicles?.plate||'',i.date||'',parseFloat(i.cost||0).toFixed(2),i.next_due||'',i.notes||''].join(sep));
+    });
+    tsvRows.push(['INSPECTION TOTAL','','',totalInspection.toFixed(2),'',''].join(sep));
+
+    // GRAND TOTAL
+    const grandTotal = totalCC + totalDiesel + totalMechanic + totalInsurance + totalInspection;
+    tsvRows.push('');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push('GRAND TOTAL SUMMARY');
+    tsvRows.push('══════════════════════════════════════');
+    tsvRows.push(['Company Costs','',totalCC.toFixed(2)].join(sep));
+    tsvRows.push(['Diesel','',totalDiesel.toFixed(2)].join(sep));
+    tsvRows.push(['Mechanic','',totalMechanic.toFixed(2)].join(sep));
+    tsvRows.push(['Insurance','',totalInsurance.toFixed(2)].join(sep));
+    tsvRows.push(['Inspection','',totalInspection.toFixed(2)].join(sep));
+    tsvRows.push('');
+    tsvRows.push(['TOTAL EXPENSES','',grandTotal.toFixed(2)].join(sep));
+
+    const blob = new Blob(['\uFEFF'+tsvRows.join('\n')], {type:'text/tab-separated-values;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Fleetly_AccountingExport_' + new Date().toISOString().split('T')[0] + '.tsv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Accounting export ready! ✅');
+  } catch(e) {
+    showToast('Export error: ' + e.message);
+  }
 }
 
 

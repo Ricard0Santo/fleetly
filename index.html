@@ -3081,61 +3081,119 @@ async function loadDriverProfile(){
 // EXCEL EXPORT
 // =============================================
 async function exportServices(){
-  const from = document.getElementById('f-from').value;
-  const to = document.getElementById('f-to').value;
-  const ag = document.getElementById('f-agency').value;
-  const drv = document.getElementById('f-driver').value;
+  try {
+    const from = document.getElementById('f-from')?.value || '';
+    const to = document.getElementById('f-to')?.value || '';
+    const ag = document.getElementById('f-agency')?.value || '';
+    const drv = document.getElementById('f-driver')?.value || '';
 
-  let q = sb.from('services')
-    .select('*,agencies(name),drivers(full_name),vehicles(plate)')
-    .eq('company_id', currentProfile.company_id)
-    .order('service_date', {ascending: false});
+    showToast('Preparing export...');
 
-  if(from) q = q.gte('service_date', from);
-  if(to) q = q.lte('service_date', to);
-  if(ag) q = q.eq('agency_id', ag);
-  if(drv) q = q.eq('driver_id', drv);
+    let q = sb.from('services')
+      .select('service_date, pickup_time, client_name, service_type, passengers, pickup_location, dropoff_location, service_price, driver_cost, status, notes, agencies(name), drivers(full_name), vehicles(plate)')
+      .eq('company_id', currentProfile.company_id)
+      .order('service_date', {ascending: false});
 
-  const {data} = await q;
-  const rows = data||[];
-  if(!rows.length){ showToast('No data to export.'); return; }
+    if(from) q = q.gte('service_date', from);
+    if(to) q = q.lte('service_date', to);
+    if(ag) q = q.eq('agency_id', ag);
+    if(drv) q = q.eq('driver_id', drv);
 
-  const periodLabel = from && to ? from + ' to ' + to : 'All time';
-  const filename = 'Fleetly_Services_' + (from||'all') + '_to_' + (to||'all') + '.xlsx';
+    const {data, error} = await q;
+    if(error){ showToast('Error: ' + error.message); return; }
+    const rows = data||[];
+    if(!rows.length){ showToast('No services to export.'); return; }
 
-  const ws_data = [
-    ['Fleetly — Service Records'],
-    ['Period:', periodLabel],
-    ['Exported:', new Date().toLocaleDateString('pt-PT')],
-    ['Total services:', rows.length],
-    [],
-    ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','Driver','Price (€)','Driver Cost (€)','Margin (€)','Status','Notes']
-  ];
+    // Build CSV instead of XLSX for reliability
+    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','Driver','Price','Driver Cost','Margin','Status','Notes'];
+    const csvRows = [headers.join(',')];
+    rows.forEach(s => {
+      const margin = parseFloat(s.service_price||0) - parseFloat(s.driver_cost||0);
+      const row = [
+        s.service_date||'',
+        s.pickup_time||'',
+        (s.client_name||'').replace(/,/g,' '),
+        (s.agencies?.name||'').replace(/,/g,' '),
+        (s.service_type||'').replace(/,/g,' '),
+        s.passengers||1,
+        (s.pickup_location||'').replace(/,/g,' '),
+        (s.dropoff_location||'').replace(/,/g,' '),
+        (s.vehicles?.plate||'').replace(/,/g,' '),
+        (s.drivers?.full_name||'').replace(/,/g,' '),
+        parseFloat(s.service_price||0).toFixed(2),
+        parseFloat(s.driver_cost||0).toFixed(2),
+        margin.toFixed(2),
+        (s.status||'').replace(/,/g,' '),
+        (s.notes||'').replace(/,/g,' ')
+      ];
+      csvRows.push(row.join(','));
+    });
 
-  rows.forEach(s => ws_data.push([
-    String(s.service_date||''),
-    String(s.pickup_time||''),
-    String(s.client_name||''),
-    String(s.agencies?.name||''),
-    String(s.service_type||''),
-    Number(s.passengers||1),
-    String(s.pickup_location||''),
-    String(s.dropoff_location||''),
-    String(s.vehicles?.plate||''),
-    String(s.drivers?.full_name||''),
-    parseFloat(s.service_price||0),
-    parseFloat(s.driver_cost||0),
-    parseFloat(s.service_price||0) - parseFloat(s.driver_cost||0),
-    String(s.status||''),
-    String(s.notes||'')
-  ]));
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Fleetly_Services_' + (from||'all') + '_to_' + (to||'all') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Exported ' + rows.length + ' services! ✅');
+  } catch(e) {
+    console.error('Export error:', e);
+    showToast('Export error: ' + e.message);
+  }
+}
 
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!cols'] = [{wch:12},{wch:8},{wch:22},{wch:20},{wch:18},{wch:5},{wch:18},{wch:18},{wch:10},{wch:20},{wch:10},{wch:12},{wch:10},{wch:14},{wch:25}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, 'Services', ws);
-  XLSX.writeFile(wb, filename);
-  showToast('Exported ' + rows.length + ' services! ✅');
+async function exportDriverServices(){
+  try {
+    if(!currentDriver){ showToast('No driver profile found.'); return; }
+    showToast('Preparing export...');
+
+    const {data, error} = await sb.from('services')
+      .select('service_date, pickup_time, client_name, service_type, passengers, pickup_location, dropoff_location, driver_cost, status, notes, agencies(name), vehicles(plate)')
+      .eq('driver_id', currentDriver.id)
+      .order('service_date', {ascending: false});
+
+    if(error){ showToast('Error: ' + error.message); return; }
+    const rows = data||[];
+    if(!rows.length){ showToast('No services to export.'); return; }
+
+    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','My Payment','Status','Notes'];
+    const csvRows = [headers.join(',')];
+    rows.forEach(s => {
+      const row = [
+        s.service_date||'',
+        s.pickup_time||'',
+        (s.client_name||'').replace(/,/g,' '),
+        (s.agencies?.name||'').replace(/,/g,' '),
+        (s.service_type||'').replace(/,/g,' '),
+        s.passengers||1,
+        (s.pickup_location||'').replace(/,/g,' '),
+        (s.dropoff_location||'').replace(/,/g,' '),
+        (s.vehicles?.plate||'').replace(/,/g,' '),
+        parseFloat(s.driver_cost||0).toFixed(2),
+        (s.status||'').replace(/,/g,' '),
+        (s.notes||'').replace(/,/g,' ')
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Fleetly_MyServices_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Exported ' + rows.length + ' services! ✅');
+  } catch(e) {
+    showToast('Export error: ' + e.message);
+  }
 }
 
 async function exportReport(){

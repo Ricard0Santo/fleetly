@@ -1083,6 +1083,10 @@ tr:hover td{background:#f8f9fc}
             </div>
           </div>
           <input type="date" id="driver-cal-picker" onchange="pickDriverDate(this.value)" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none">
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <div class="result-count" id="driver-svc-count"></div>
+            <button class="btn btn-export btn-sm" onclick="exportDriverServices()">📥 Export</button>
+          </div>
         </div>
         <div id="driver-services-list"><div class="empty">No services found.</div></div>
       </div>
@@ -2554,6 +2558,8 @@ async function loadDriverServices(from,to){
   const{data}=await q;
   const rows=data||[];
   const list=document.getElementById('driver-services-list');
+  const countEl = document.getElementById('driver-svc-count');
+  if(countEl) countEl.textContent = rows.length + ' service' + (rows.length!==1?'s':'');
   // Calculate earnings summary
   const completed = rows.filter(r=>r.status==='Completed');
   const cancelled = rows.filter(r=>r.status==='Cancelled');
@@ -3104,37 +3110,52 @@ async function exportServices(){
     const rows = data||[];
     if(!rows.length){ showToast('No services to export.'); return; }
 
-    // Build CSV instead of XLSX for reliability
-    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','Driver','Price','Driver Cost','Margin','Status','Notes'];
-    const csvRows = [headers.join(',')];
+    // Build proper tab-separated file (opens correctly in Excel)
+    const sep = '\t';
+    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','Driver','Price (€)','Driver Cost (€)','Margin (€)','Status','Notes'];
+    const tsvRows = [headers.join(sep)];
+    
+    let totalPrice = 0, totalDriverCost = 0, totalMargin = 0;
+    
     rows.forEach(s => {
-      const margin = parseFloat(s.service_price||0) - parseFloat(s.driver_cost||0);
+      const price = parseFloat(s.service_price||0);
+      const driverCost = parseFloat(s.driver_cost||0);
+      const margin = price - driverCost;
+      totalPrice += price;
+      totalDriverCost += driverCost;
+      totalMargin += margin;
+      
       const row = [
         s.service_date||'',
         s.pickup_time||'',
-        (s.client_name||'').replace(/,/g,' '),
-        (s.agencies?.name||'').replace(/,/g,' '),
-        (s.service_type||'').replace(/,/g,' '),
+        s.client_name||'',
+        s.agencies?.name||'',
+        s.service_type||'',
         s.passengers||1,
-        (s.pickup_location||'').replace(/,/g,' '),
-        (s.dropoff_location||'').replace(/,/g,' '),
-        (s.vehicles?.plate||'').replace(/,/g,' '),
-        (s.drivers?.full_name||'').replace(/,/g,' '),
-        parseFloat(s.service_price||0).toFixed(2),
-        parseFloat(s.driver_cost||0).toFixed(2),
+        s.pickup_location||'',
+        s.dropoff_location||'',
+        s.vehicles?.plate||'',
+        s.drivers?.full_name||'',
+        price.toFixed(2),
+        driverCost.toFixed(2),
         margin.toFixed(2),
-        (s.status||'').replace(/,/g,' '),
-        (s.notes||'').replace(/,/g,' ')
+        s.status||'',
+        s.notes||''
       ];
-      csvRows.push(row.join(','));
+      tsvRows.push(row.join(sep));
     });
 
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    // Add totals row
+    tsvRows.push('');
+    tsvRows.push(['','','','','','','','','','TOTAL',totalPrice.toFixed(2),totalDriverCost.toFixed(2),totalMargin.toFixed(2),'',''].join(sep));
+    tsvRows.push(['','','','','','','','','','Services: '+rows.length,'','','','',''].join(sep));
+
+    const content2 = tsvRows.join('\n');
+    const blob = new Blob(['\uFEFF'+content2], {type: 'text/tab-separated-values;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Fleetly_Services_' + (from||'all') + '_to_' + (to||'all') + '.csv';
+    a.download = 'Fleetly_Services_' + (from||'all') + '_to_' + (to||'all') + '.tsv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -3160,32 +3181,41 @@ async function exportDriverServices(){
     const rows = data||[];
     if(!rows.length){ showToast('No services to export.'); return; }
 
-    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','My Payment','Status','Notes'];
-    const csvRows = [headers.join(',')];
+    const sep = '\t';
+    const headers = ['Date','Time','Client','Agency','Service Type','Pax','Pick-up','Drop-off','Vehicle','My Payment (€)','Status','Notes'];
+    const tsvRows = [headers.join(sep)];
+    
+    let totalPay = 0;
     rows.forEach(s => {
-      const row = [
+      const pay = parseFloat(s.driver_cost||0);
+      totalPay += pay;
+      tsvRows.push([
         s.service_date||'',
         s.pickup_time||'',
-        (s.client_name||'').replace(/,/g,' '),
-        (s.agencies?.name||'').replace(/,/g,' '),
-        (s.service_type||'').replace(/,/g,' '),
+        s.client_name||'',
+        s.agencies?.name||'',
+        s.service_type||'',
         s.passengers||1,
-        (s.pickup_location||'').replace(/,/g,' '),
-        (s.dropoff_location||'').replace(/,/g,' '),
-        (s.vehicles?.plate||'').replace(/,/g,' '),
-        parseFloat(s.driver_cost||0).toFixed(2),
-        (s.status||'').replace(/,/g,' '),
-        (s.notes||'').replace(/,/g,' ')
-      ];
-      csvRows.push(row.join(','));
+        s.pickup_location||'',
+        s.dropoff_location||'',
+        s.vehicles?.plate||'',
+        pay.toFixed(2),
+        s.status||'',
+        s.notes||''
+      ].join(sep));
     });
 
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    // Totals
+    tsvRows.push('');
+    tsvRows.push(['','','','','','','','','TOTAL',totalPay.toFixed(2),'',''].join(sep));
+    tsvRows.push(['','','','','','','','','Services: '+rows.length,'','',''].join(sep));
+
+    const content2 = tsvRows.join('\n');
+    const blob = new Blob(['\uFEFF'+content2], {type: 'text/tab-separated-values;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Fleetly_MyServices_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.download = 'Fleetly_MyServices_' + new Date().toISOString().split('T')[0] + '.tsv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

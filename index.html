@@ -3113,21 +3113,21 @@ async function exportServices(){
   ];
 
   rows.forEach(s => ws_data.push([
-    s.service_date,
-    s.pickup_time||'',
-    s.client_name,
-    s.agencies?.name||'',
-    s.service_type,
-    s.passengers||1,
-    s.pickup_location||'',
-    s.dropoff_location||'',
-    s.vehicles?.plate||'',
-    s.drivers?.full_name||'',
+    String(s.service_date||''),
+    String(s.pickup_time||''),
+    String(s.client_name||''),
+    String(s.agencies?.name||''),
+    String(s.service_type||''),
+    Number(s.passengers||1),
+    String(s.pickup_location||''),
+    String(s.dropoff_location||''),
+    String(s.vehicles?.plate||''),
+    String(s.drivers?.full_name||''),
     parseFloat(s.service_price||0),
     parseFloat(s.driver_cost||0),
     parseFloat(s.service_price||0) - parseFloat(s.driver_cost||0),
-    s.status||'',
-    s.notes||''
+    String(s.status||''),
+    String(s.notes||'')
   ]));
 
   const ws = XLSX.utils.aoa_to_sheet(ws_data);

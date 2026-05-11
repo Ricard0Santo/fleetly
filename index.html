@@ -6,6 +6,7 @@
 <title>Fleetly — Fleet Management</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDNlybNo9cUQEWNelrRvn2qMgc9XwuJAlk&libraries=geometry"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -300,6 +301,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
         <div class="nav-section">Services</div>
         <div class="nav-item" onclick="showPage('services')"><span class="nav-icon">🚗</span>Services</div>
+        <div class="nav-item" onclick="showPage('live-tracking')"><span class="nav-icon">🗺️</span>Live Tracking</div>
         <div class="nav-item" onclick="showPage('checklists')"><span class="nav-icon">📋</span>Checklists</div>
         <div class="nav-item" onclick="showPage('incidents')"><span class="nav-icon">🚨</span>Incidents</div>
         <div class="nav-item" onclick="showPage('approvals')"><span class="nav-icon">✅</span>Approvals <span id="approval-count-badge" style="background:#6B21A8;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
@@ -338,6 +340,7 @@ tr:hover td{background:#f8f9fc}
         <div class="nav-item" onclick="showPage('driver-diesel')"><span class="nav-icon">⛽</span>My Diesel</div>
         <div class="nav-item" onclick="showPage('driver-checklist')"><span class="nav-icon">✅</span>Checklist</div>
         <div class="nav-item" onclick="showPage('driver-incidents')"><span class="nav-icon">🚨</span>Incidents</div>
+        <div class="nav-item" id="nav-track-btn" onclick="toggleDriverTracking()"><span class="nav-icon">📍</span><span id="nav-track-label">Start Tracking</span></div>
         <div class="nav-item" onclick="showPage('driver-messages')"><span class="nav-icon">✉️</span>Messages <span id="driver-msg-badge" style="background:#DC2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;display:none">0</span></div>
         <div class="nav-item" onclick="showPage('driver-profile')"><span class="nav-icon">👤</span>My Profile</div>
       </div>
@@ -913,6 +916,33 @@ tr:hover td{background:#f8f9fc}
             </table>
             <div class="empty" id="incidents-empty" style="display:none">No incidents reported.</div>
           </div>
+        </div>
+      </div>
+
+
+      <!-- LIVE TRACKING -->
+      <div class="page" id="page-live-tracking">
+        <div class="page-title">🗺️ Live Tracking</div>
+        <div class="page-sub">Real-time driver locations</div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <div class="card" style="flex:1;min-width:160px;padding:14px">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Active Drivers</div>
+            <div id="active-drivers-count" style="font-size:28px;font-weight:700;color:var(--teal)">0</div>
+          </div>
+          <div class="card" style="flex:1;min-width:160px;padding:14px">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Last Update</div>
+            <div id="tracking-last-update" style="font-size:13px;font-weight:600;color:var(--dark)">—</div>
+          </div>
+          <button class="btn btn-primary" onclick="loadLiveTracking()">🔄 Refresh</button>
+        </div>
+        <div class="card" style="padding:8px;overflow:hidden">
+          <div id="tracking-map" style="width:100%;height:480px;border-radius:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center">
+            <div style="color:var(--muted);font-size:14px">Map loading...</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card-title">Driver Status</div>
+          <div id="tracking-drivers-list"><div class="empty">No drivers currently sharing location.</div></div>
         </div>
       </div>
 
@@ -3367,6 +3397,7 @@ function showPage(page){
   }
   if(page==='price-rules'){ loadPriceRules(); }
   if(page==='checklists'){ loadChecklists(); }
+  if(page==='live-tracking'){ loadLiveTracking(); }
   if(page==='incidents'){ loadIncidents(); }
   if(page==='driver-incidents'){ initDriverIncidents(); }
   if(page==='sa-dashboard') loadSADashboard();
@@ -6448,6 +6479,159 @@ document.addEventListener('change', function(e){
     });
   }
 });
+
+// =============================================
+// LIVE TRACKING
+// =============================================
+let trackingMap = null;
+let trackingMarkers = {};
+let trackingInterval = null;
+let driverTrackingActive = false;
+let driverWatchId = null;
+
+// ADMIN - Load live tracking
+async function loadLiveTracking(){
+  const {data} = await sb.from('driver_locations')
+    .select('*, drivers(full_name, company_id)')
+    .eq('drivers.company_id', currentProfile.company_id)
+    .eq('active', true)
+    .gte('updated_at', new Date(Date.now() - 30*60*1000).toISOString()); // last 30 min
+
+  const locations = (data||[]).filter(d => d.drivers?.company_id === currentProfile.company_id);
+
+  document.getElementById('active-drivers-count').textContent = locations.length;
+  document.getElementById('tracking-last-update').textContent = new Date().toLocaleTimeString('pt-PT');
+
+  // Init map centred on Madeira
+  if(!trackingMap){
+    trackingMap = new google.maps.Map(document.getElementById('tracking-map'), {
+      center: { lat: 32.7607, lng: -16.9595 },
+      zoom: 11,
+      mapTypeId: 'roadmap'
+    });
+  }
+
+  // Clear old markers
+  Object.values(trackingMarkers).forEach(m => m.setMap(null));
+  trackingMarkers = {};
+
+  if(!locations.length){
+    document.getElementById('tracking-drivers-list').innerHTML = '<div class="empty">No drivers currently sharing location.</div>';
+    return;
+  }
+
+  const bounds = new google.maps.LatLngBounds();
+
+  locations.forEach(loc => {
+    const pos = { lat: loc.latitude, lng: loc.longitude };
+    bounds.extend(pos);
+
+    // Custom marker
+    const marker = new google.maps.Marker({
+      position: pos,
+      map: trackingMap,
+      title: loc.drivers?.full_name || 'Driver',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#00C9A7',
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: 2
+      },
+      label: {
+        text: (loc.drivers?.full_name||'D').charAt(0),
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: '11px'
+      }
+    });
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div style="font-family:Arial,sans-serif;padding:4px">
+        <div style="font-weight:700;color:#0F1923">${loc.drivers?.full_name||'Driver'}</div>
+        <div style="font-size:12px;color:#666">Speed: ${loc.speed ? loc.speed.toFixed(0)+' km/h' : '—'}</div>
+        <div style="font-size:11px;color:#999">${new Date(loc.updated_at).toLocaleTimeString('pt-PT')}</div>
+      </div>`
+    });
+
+    marker.addListener('click', () => infoWindow.open(trackingMap, marker));
+    trackingMarkers[loc.driver_id] = marker;
+  });
+
+  trackingMap.fitBounds(bounds);
+
+  // Driver list
+  document.getElementById('tracking-drivers-list').innerHTML = locations.map(loc => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:36px;height:36px;background:var(--teal);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0">
+        ${(loc.drivers?.full_name||'D').charAt(0)}
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${loc.drivers?.full_name||'Driver'}</div>
+        <div style="font-size:11px;color:var(--muted)">
+          Last seen: ${new Date(loc.updated_at).toLocaleTimeString('pt-PT')}
+          ${loc.speed ? ' · ' + loc.speed.toFixed(0) + ' km/h' : ''}
+        </div>
+      </div>
+      <div style="width:10px;height:10px;background:#00C9A7;border-radius:50%;flex-shrink:0"></div>
+    </div>
+  `).join('');
+}
+
+// DRIVER - Toggle tracking on/off
+async function toggleDriverTracking(){
+  if(!driverTrackingActive){
+    // Start tracking
+    if(!navigator.geolocation){ showToast('GPS not available on this device.'); return; }
+
+    driverTrackingActive = true;
+    document.getElementById('nav-track-label').textContent = 'Stop Tracking';
+    const navBtn = document.getElementById('nav-track-btn');
+    if(navBtn){ navBtn.style.background = 'rgba(239,68,68,0.2)'; navBtn.style.color = '#EF4444'; }
+
+    // Update location in DB every 15 seconds
+    await updateDriverLocation();
+    trackingInterval = setInterval(updateDriverLocation, 15000);
+    showToast('📍 Location sharing started!');
+  } else {
+    // Stop tracking
+    driverTrackingActive = false;
+    if(driverWatchId) navigator.geolocation.clearWatch(driverWatchId);
+    if(trackingInterval) clearInterval(trackingInterval);
+
+    document.getElementById('nav-track-label').textContent = 'Start Tracking';
+    const navBtn = document.getElementById('nav-track-btn');
+    if(navBtn){ navBtn.style.background = ''; navBtn.style.color = ''; }
+
+    // Mark as inactive in DB
+    if(currentDriver){
+      await sb.from('driver_locations').update({active: false}).eq('driver_id', currentDriver.id);
+    }
+    showToast('📍 Location sharing stopped.');
+  }
+}
+
+async function updateDriverLocation(){
+  if(!currentDriver || !driverTrackingActive) return;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const {latitude, longitude, speed, accuracy} = pos.coords;
+    const speedKmh = speed ? speed * 3.6 : null;
+
+    await sb.from('driver_locations').upsert({
+      driver_id: currentDriver.id,
+      company_id: currentDriver.company_id,
+      latitude,
+      longitude,
+      speed: speedKmh,
+      accuracy,
+      active: true,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'driver_id' });
+  }, (err) => {
+    console.error('GPS error:', err);
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
 
 </script>
 

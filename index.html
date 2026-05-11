@@ -2083,6 +2083,8 @@ async function signIn(){
 }
 
 async function signOut(){
+  // Stop tracking before signing out
+  if(driverTrackingActive) await stopDriverTracking();
   await sb.auth.signOut();
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
@@ -6580,35 +6582,45 @@ async function loadLiveTracking(){
 }
 
 // DRIVER - Toggle tracking on/off
+async function startDriverTracking(){
+  if(driverTrackingActive) return;
+  if(!navigator.geolocation) return;
+  if(!currentDriver) return;
+
+  driverTrackingActive = true;
+
+  // Update nav label
+  const label = document.getElementById('nav-track-label');
+  const navBtn = document.getElementById('nav-track-btn');
+  if(label) label.textContent = 'Tracking ON';
+  if(navBtn){ navBtn.style.color = '#00C9A7'; }
+
+  // Start immediately then every 15 seconds
+  await updateDriverLocation();
+  trackingInterval = setInterval(updateDriverLocation, 15000);
+}
+
+async function stopDriverTracking(){
+  if(!driverTrackingActive) return;
+  driverTrackingActive = false;
+  if(trackingInterval) clearInterval(trackingInterval);
+  trackingInterval = null;
+
+  const label = document.getElementById('nav-track-label');
+  if(label) label.textContent = 'Tracking OFF';
+
+  if(currentDriver){
+    await sb.from('driver_locations').update({active: false}).eq('driver_id', currentDriver.id);
+  }
+}
+
 async function toggleDriverTracking(){
-  if(!driverTrackingActive){
-    // Start tracking
-    if(!navigator.geolocation){ showToast('GPS not available on this device.'); return; }
-
-    driverTrackingActive = true;
-    document.getElementById('nav-track-label').textContent = 'Stop Tracking';
-    const navBtn = document.getElementById('nav-track-btn');
-    if(navBtn){ navBtn.style.background = 'rgba(239,68,68,0.2)'; navBtn.style.color = '#EF4444'; }
-
-    // Update location in DB every 15 seconds
-    await updateDriverLocation();
-    trackingInterval = setInterval(updateDriverLocation, 15000);
-    showToast('📍 Location sharing started!');
+  if(driverTrackingActive){
+    await stopDriverTracking();
+    showToast('📍 Tracking paused.');
   } else {
-    // Stop tracking
-    driverTrackingActive = false;
-    if(driverWatchId) navigator.geolocation.clearWatch(driverWatchId);
-    if(trackingInterval) clearInterval(trackingInterval);
-
-    document.getElementById('nav-track-label').textContent = 'Start Tracking';
-    const navBtn = document.getElementById('nav-track-btn');
-    if(navBtn){ navBtn.style.background = ''; navBtn.style.color = ''; }
-
-    // Mark as inactive in DB
-    if(currentDriver){
-      await sb.from('driver_locations').update({active: false}).eq('driver_id', currentDriver.id);
-    }
-    showToast('📍 Location sharing stopped.');
+    await startDriverTracking();
+    showToast('📍 Tracking resumed!');
   }
 }
 
